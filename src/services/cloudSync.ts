@@ -1,5 +1,5 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { signInWithPopup, signOut, User } from 'firebase/auth';
+import { signInWithRedirect, signOut, User } from 'firebase/auth';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from './firebase';
 
 export interface CloudSavePayload {
