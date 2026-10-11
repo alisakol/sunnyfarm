@@ -750,12 +750,12 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
 
         {/* Crops Horizontal Scroll Selector */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-          {Object.values(CROPS)
-            .filter((crop) => {
-              if (cropFilter === 'seasonal') return Boolean(crop.season);
-              if (cropFilter === 'standard') return !crop.season;
-              return true;
-            })
+				  {Object.values(CROPS)
+		  .filter((crop) => {
+			if (cropFilter === 'seasonal') return Boolean(crop.season);
+			if (cropFilter === 'standard') return !crop.season;
+			return true;
+		  })
             .map((crop) => {
               const isUnlocked = level >= crop.minLevel;
               const isSelected = selectedCropId === crop.id;
