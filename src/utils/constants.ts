@@ -68,8 +68,6 @@ export const CROPS: Record<string, CropConfig> = {
     xp: 60,
     minLevel: 5,
     description: 'Яркий солнечный цветок. Привлекает пчёл на пасеку!',
-    season: 'summer',
-    seasonalBonusDescription: 'Летний цветок: +35% монет летом',
   },
   watermelon: {
     id: 'watermelon',
