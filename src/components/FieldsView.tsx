@@ -749,6 +749,7 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
         </div>
 
                {/* Crops Horizontal Scroll Selector */}
+                {/* Crops Horizontal Scroll Selector */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
           {filteredCrops
             .filter((crop) => {
@@ -780,15 +781,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
                   }`}
                   title={crop.description}
                 >
-                  {/* Контент внутри кнопки семени */}
-                  <span className="text-xl">{crop.emoji}</span>
-                  <span className="text-[11px] font-bold mt-0.5">{crop.name}</span>
-                  <span className="text-[9px] text-amber-300/90 font-medium">🪙 {crop.cost}</span>
-                </button>
-              );
-            })}
-        </div>
-
                   {/* Seasonal badge */}
                   {crop.season && (
                     <span
@@ -830,3 +822,4 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
     </div>
   );
 };
+
