@@ -32,32 +32,18 @@ export interface CloudSavePayload {
 
 export async function loginWithGooglePopup(): Promise<User | null> {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    if (result.user) {
-      // Upsert profile document
-      const userRef = doc(db, 'users', result.user.uid);
-      try {
-        await setDoc(
-          userRef,
-          {
-            id: result.user.uid,
-            email: result.user.email || '',
-            displayName: result.user.displayName || 'Фермер',
-            photoURL: result.user.photoURL || '',
-            lastLoginAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-      } catch (err) {
-        console.warn('Could not save user profile to firestore:', err);
-      }
-    }
-    return result.user;
+    // Перенаправляем пользователя на авторизацию Google вместо открытия всплывающего окна
+    await signInWithRedirect(auth, googleProvider);
+    
+    // Страница сразу перезагрузится, поэтому возвращаем null.
+    // Пользователь вернется на сайт уже авторизованным.
+    return null; 
   } catch (error) {
     console.error('Google Sign-In failed:', error);
     throw error;
   }
 }
+
 
 export async function logoutUser(): Promise<void> {
   await signOut(auth);
