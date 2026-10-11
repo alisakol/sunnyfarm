@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  h1, h2, h3, .font-game {
+    font-family: 'Fredoka', cursive, 'Nunito', sans-serif;
+  }
+}
+
+/* Custom animations for farm elements */
+@keyframes sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+
+@keyframes floatSlow {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes bounceMini {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.03); }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.8; filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.4)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.8)); }
+}
+
+@keyframes truckDrive {
+  0% { transform: translateX(0); }
+  45% { transform: translateX(260px); opacity: 0; }
+  55% { transform: translateX(-260px); opacity: 0; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes npcStroll {
+  0% { transform: translateX(-12px) rotate(-1.5deg); }
+  48% { transform: translateX(12px) rotate(1.5deg); }
+  52% { transform: translateX(12px) scaleX(-1) rotate(-1.5deg); }
+  98% { transform: translateX(-12px) scaleX(-1) rotate(1.5deg); }
+  100% { transform: translateX(-12px) scaleX(1) rotate(-1.5deg); }
+}
+
+@keyframes npcStrollAlt {
+  0% { transform: translateX(10px) translateY(0) rotate(1deg); }
+  48% { transform: translateX(-10px) translateY(-2px) rotate(-1deg); }
+  52% { transform: translateX(-10px) scaleX(-1) rotate(1deg); }
+  98% { transform: translateX(10px) translateY(0) scaleX(-1) rotate(-1deg); }
+  100% { transform: translateX(10px) translateY(0) scaleX(1) rotate(1deg); }
+}
+
+@keyframes thoughtFloat {
+  0%, 100% { transform: translateY(0px) scale(1); }
+  50% { transform: translateY(-5px) scale(1.05); }
+}
+
+.animate-sway {
+  animation: sway 3s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: floatSlow 4s ease-in-out infinite;
+}
+
+.animate-bounce-mini {
+  animation: bounceMini 1.8s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.animate-npc-stroll {
+  animation: npcStroll 7s ease-in-out infinite;
+}
+
+.animate-npc-stroll-alt {
+  animation: npcStrollAlt 8.5s ease-in-out infinite;
+}
+
+.animate-thought-float {
+  animation: thoughtFloat 2.4s ease-in-out infinite;
+}
+
+/* Hide scrollbar for clean mobile tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -1,0 +1,239 @@
+{
+  "entities": {
+    "userProfile": {
+      "title": "UserProfile",
+      "description": "User account profile details visible to authenticated community for friends discovery",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "photoURL": {
+          "type": "string"
+        },
+        "farmName": {
+          "type": "string"
+        },
+        "level": {
+          "type": "number"
+        },
+        "reputation": {
+          "type": "number"
+        },
+        "specialty": {
+          "type": "string"
+        },
+        "bio": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "lastLoginAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id"]
+    },
+    "farmSave": {
+      "title": "FarmSave",
+      "description": "Cross-device synchronized farm game save state",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string"
+        },
+        "level": {
+          "type": "number"
+        },
+        "coins": {
+          "type": "number"
+        },
+        "gems": {
+          "type": "number"
+        },
+        "xp": {
+          "type": "number"
+        },
+        "barnCapacity": {
+          "type": "number"
+        },
+        "gameData": {
+          "type": "string",
+          "maxLength": 500000
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["userId", "gameData", "updatedAt"]
+    },
+    "userFriend": {
+      "title": "UserFriend",
+      "description": "Friend relationship document stored under user's private friends list",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "friendUid": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "photoURL": {
+          "type": "string"
+        },
+        "farmName": {
+          "type": "string"
+        },
+        "level": {
+          "type": "number"
+        },
+        "addedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "friendUid"]
+    },
+    "chatConversation": {
+      "title": "ChatConversation",
+      "description": "One-on-one direct message conversation between two friends",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "lastMessageText": {
+          "type": "string"
+        },
+        "lastMessageSenderId": {
+          "type": "string"
+        },
+        "lastMessageAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "required": ["id", "participants"]
+    },
+    "chatMessage": {
+      "title": "ChatMessage",
+      "description": "Real-time chat message exchanged between friends",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "chatId": {
+          "type": "string"
+        },
+        "senderId": {
+          "type": "string"
+        },
+        "senderName": {
+          "type": "string"
+        },
+        "senderPhoto": {
+          "type": "string"
+        },
+        "text": {
+          "type": "string"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "timestamp": {
+          "type": "number"
+        }
+      },
+      "required": ["id", "chatId", "senderId", "senderName", "text", "createdAt"]
+    },
+    "playerGift": {
+      "title": "PlayerGift",
+      "description": "Real-time gift sent between real player friends",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "recipientUid": { "type": "string" },
+        "senderUid": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderAvatar": { "type": "string" },
+        "senderLevel": { "type": "number" },
+        "giftType": { "type": "string" },
+        "giftName": { "type": "string" },
+        "giftEmoji": { "type": "string" },
+        "count": { "type": "number" },
+        "note": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "claimed": { "type": "boolean" }
+      },
+      "required": ["id", "recipientUid", "senderUid", "senderName", "giftType", "giftName", "count", "claimed"]
+    },
+    "playerVisit": {
+      "title": "PlayerVisit",
+      "description": "Farm visit log document recording visitor interactions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "recipientUid": { "type": "string" },
+        "visitorUid": { "type": "string" },
+        "visitorName": { "type": "string" },
+        "visitorAvatar": { "type": "string" },
+        "visitorLevel": { "type": "number" },
+        "action": { "type": "string" },
+        "actionText": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "rewardClaimed": { "type": "boolean" }
+      },
+      "required": ["id", "recipientUid", "visitorUid", "visitorName", "action", "actionText"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "userProfile",
+      "description": "User profile document readable by signed in users for player discovery and writable by owner"
+    },
+    "/users/{userId}/saves/{saveId}": {
+      "schema": "farmSave",
+      "description": "Cloud game save document storing progress for cross-device sync"
+    },
+    "/users/{userId}/friends/{friendId}": {
+      "schema": "userFriend",
+      "description": "Friend entry linking to another verified player"
+    },
+    "/users/{userId}/gifts/{giftId}": {
+      "schema": "playerGift",
+      "description": "Gifts sent to the user by friends and community players"
+    },
+    "/users/{userId}/visits/{visitId}": {
+      "schema": "playerVisit",
+      "description": "Visits and helpful interactions from other players"
+    },
+    "/chats/{chatId}": {
+      "schema": "chatConversation",
+      "description": "Direct chat conversation metadata between two mutual friends"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "chatMessage",
+      "description": "Individual message inside a friend chat conversation"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Солнечная Ферма",
+  "description": "Красочная мобильная ферма для Android: выращивайте урожай, ухаживайте за животными, выпекайте хлеб, выполняйте заказы на грузовичке и развивайте своё хозяйство!",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
