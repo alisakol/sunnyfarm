@@ -363,59 +363,74 @@ export function useGameState() {
 
 // XP & Level-up system
 const addXp = useCallback((amount: number) => {
+  // Сначала обновляем опыт и вычисляем, сколько уровней мы набрали
   setXp((prevXp) => {
-    let currentLevel = level;
     let newTotal = prevXp + amount;
-    let nextLevelRequirement = LEVEL_REQUIREMENTS[currentLevel] || currentLevel * 1000;
-
-    // Цикл работает, пока опыта хватает на повышение, БЕЗ ограничения < 10
-    while (newTotal >= nextLevelRequirement) {
-      newTotal -= nextLevelRequirement;
-      currentLevel += 1;
-      
-      const nextLvl = currentLevel;
-      setLevel(nextLvl);
-      setNewLevelUnlocked(nextLvl);
-      setGems((g) => g + 3);
-      setCoins((c) => c + nextLvl * 50);
-      
-      // Эффекты и звуки
-      if (typeof sound?.playLevelUp === 'function') sound.playLevelUp();
-      if (typeof vibrateLevelUp === 'function') vibrateLevelUp();
-      
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-      
-      showFloating(`Уровень ${nextLvl}! +3 💎 +${nextLvl * 50} 🪙`, 'text-emerald-300');
-
-      // Автоматическая запись в Дневник Фермера
-      const nowObj = new Date();
-      setJournalEntries((prev) => [
-        {
-          id: `journal_lvl_${nextLvl}_${Date.now()}`,
-          type: 'level_up',
-          title: `Достигнут Уровень ${nextLvl}`,
-          description: `Фермер достиг ${nextLvl}-го уровня мастерства! Разблокированы новые земельные наделы, семена и рецепты крафта. Получена награда: +3 💎, +${nextLvl * 50} 🪙.`,
-          timestamp: nowObj.toISOString(),
-          formattedDate: formatJournalDate(nowObj),
-          icon: '🌟',
-          badge: `Уровень ${nextLvl}`,
-          levelNumber: nextLvl,
-          rewardsSummary: `+3 💎, +${nextLvl * 50} 🪙`,
-        },
-        ...prev,
-      ]);
-
-      // Обновляем требование опыта для следующей итерации цикла (если уровней апнулось несколько)
-      nextLevelRequirement = LEVEL_REQUIREMENTS[currentLevel] || currentLevel * 1000;
-    }
+    let levelsGained = 0;
     
-    return newTotal;
+    // Временная копия уровня для расчетов, берем ее из текущего стейта через функциональный апдейт ниже
+    // Но чтобы узнать стартовую точку, нам нужен актуальный уровень. 
+    // Безопаснее всего передавать изменение уровня через цепочку стейта.
+    
+    setLevel((currentLevel) => {
+      let calcLevel = currentLevel;
+      let nextLevelRequirement = LEVEL_REQUIREMENTS[calcLevel] || calcLevel * 1000;
+
+      while (newTotal >= nextLevelRequirement) {
+        newTotal -= nextLevelRequirement;
+        calcLevel += 1;
+        levelsGained += 1;
+
+        // Награды за каждый полученный уровень
+        setGems((g) => g + 3);
+        setCoins((c) => c + calcLevel * 50);
+
+        // Эффекты
+        if (typeof sound?.playLevelUp === 'function') sound.playLevelUp();
+        if (typeof vibrateLevelUp === 'function') vibrateLevelUp();
+
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+
+        showFloating(`Уровень ${calcLevel}! +3 💎 +${calcLevel * 50} 🪙`, 'text-emerald-300');
+
+        // Запись в журнал
+        const nowObj = new Date();
+        setJournalEntries((prev) => [
+          {
+            id: `journal_lvl_${calcLevel}_${Date.now()}`,
+            type: 'level_up',
+            title: `Достигнут Уровень ${calcLevel}`,
+            description: `Фермер достиг ${calcLevel}-го уровня мастерства! Разблокированы новые земельные наделы, семена и рецепты крафта. Получена награда: +3 💎, +${calcLevel * 50} 🪙.`,
+            timestamp: nowObj.toISOString(),
+            formattedDate: formatJournalDate(nowObj),
+            icon: '🌟',
+            badge: `Уровень ${calcLevel}`,
+            levelNumber: calcLevel,
+            rewardsSummary: `+3 💎, +${calcLevel * 50} 🪙`,
+          },
+          ...prev,
+        ]);
+
+        // Пересчитываем лимит для следующего шага цикла
+        nextLevelRequirement = LEVEL_REQUIREMENTS[calcLevel] || calcLevel * 1000;
+      }
+
+      // Если уровень изменился, триггерим модалку
+      if (levelsGained > 0) {
+        setNewLevelUnlocked(calcLevel);
+      }
+
+      return calcLevel; // Новый уровень запишется в стейт level
+    });
+
+    return newTotal; // Остаток опыта запишется в стейт xp
   });
-}, [level, showFloating]);
+}, [showFloating]); // <-- Убрали level из массива зависимостей, чтобы избежать багов с замыканием
+
 
   // Main 1-second game tick loop
   useEffect(() => {
