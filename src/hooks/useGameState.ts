@@ -361,50 +361,37 @@ export function useGameState() {
     }
   }, [coins, gems, level, xp, lastDailyClaimDate, dailyStreak, barnCapacity, inventory, plots, animals, buildings, trees, orders, achievements, stats, neighbors, seasonMode, lastSeasonalSurpriseDate, purchasedDecorations, placedDecorations, journalEntries, npcQuests, lastQuestsRefreshDate, playerGifts, playerVisitLogs]);
 
-// XP & Level-up system
+// XP & Level-up system (Вариант со сбросом опыта до 0)
 const addXp = useCallback((amount: number) => {
-  // Сначала обновляем опыт и вычисляем, сколько уровней мы набрали
   setXp((prevXp) => {
     let newTotal = prevXp + amount;
     let levelsGained = 0;
-    
-    // Временная копия уровня для расчетов, берем ее из текущего стейта через функциональный апдейт ниже
-    // Но чтобы узнать стартовую точку, нам нужен актуальный уровень. 
-    // Безопаснее всего передавать изменение уровня через цепочку стейта.
     
     setLevel((currentLevel) => {
       let calcLevel = currentLevel;
       let nextLevelRequirement = LEVEL_REQUIREMENTS[calcLevel] || calcLevel * 1000;
 
       while (newTotal >= nextLevelRequirement) {
-        newTotal -= nextLevelRequirement;
+        newTotal = 0; // СБРАСЫВАЕМ ОПЫТ ДО 0 ПРИ ПЕРЕХОДЕ
         calcLevel += 1;
         levelsGained += 1;
 
-        // Награды за каждый полученный уровень
         setGems((g) => g + 3);
         setCoins((c) => c + calcLevel * 50);
 
-        // Эффекты
         if (typeof sound?.playLevelUp === 'function') sound.playLevelUp();
         if (typeof vibrateLevelUp === 'function') vibrateLevelUp();
 
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
-
+        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
         showFloating(`Уровень ${calcLevel}! +3 💎 +${calcLevel * 50} 🪙`, 'text-emerald-300');
 
-        // Запись в журнал
         const nowObj = new Date();
         setJournalEntries((prev) => [
           {
             id: `journal_lvl_${calcLevel}_${Date.now()}`,
             type: 'level_up',
             title: `Достигнут Уровень ${calcLevel}`,
-            description: `Фермер достиг ${calcLevel}-го уровня мастерства! Разблокированы новые земельные наделы, семена и рецепты крафта. Получена награда: +3 💎, +${calcLevel * 50} 🪙.`,
+            description: `Фермер достиг ${calcLevel}-го уровня мастерства! Награда: +3 💎, +${calcLevel * 50} 🪙.`,
             timestamp: nowObj.toISOString(),
             formattedDate: formatJournalDate(nowObj),
             icon: '🌟',
@@ -415,21 +402,20 @@ const addXp = useCallback((amount: number) => {
           ...prev,
         ]);
 
-        // Пересчитываем лимит для следующего шага цикла
         nextLevelRequirement = LEVEL_REQUIREMENTS[calcLevel] || calcLevel * 1000;
       }
 
-      // Если уровень изменился, триггерим модалку
       if (levelsGained > 0) {
         setNewLevelUnlocked(calcLevel);
       }
 
-      return calcLevel; // Новый уровень запишется в стейт level
+      return calcLevel;
     });
 
-    return newTotal; // Остаток опыта запишется в стейт xp
+    return newTotal;
   });
-}, [showFloating]); // <-- Убрали level из массива зависимостей, чтобы избежать багов с замыканием
+}, [showFloating]);
+
 
 
   // Main 1-second game tick loop
