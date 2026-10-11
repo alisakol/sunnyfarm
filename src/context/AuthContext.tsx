@@ -31,37 +31,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [syncError, setSyncError] = useState<string | null>(null);
 
   useEffect(() => {
-  const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-    setUser(currentUser);
-    setIsLoadingAuth(false);
-    setSyncError(null);
-
-    // Если пользователь успешно вернулся после редиректа и залогинился:
-    if (currentUser) {
-      const { doc, setDoc } = await import('firebase/firestore');
-      const { db } = await import('../services/firebase');
-      
-      const userRef = doc(db, 'users', currentUser.uid);
-      try {
-        await setDoc(
-          userRef,
-          {
-            id: currentUser.uid,
-            email: currentUser.email || '',
-            displayName: currentUser.displayName || 'Фермер',
-            photoURL: currentUser.photoURL || '',
-            lastLoginAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-      } catch (err) {
-        console.warn('Could not save user profile to firestore:', err);
-      }
-    }
-  });
-  return () => unsubscribe();
-}, []);
-
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setIsLoadingAuth(false);
+      setSyncError(null);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const login = useCallback(async (): Promise<User | null> => {
     try {
