@@ -88,14 +88,16 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
 
   if (!isOpen) return null;
 
-  // Filter by Category first
+    // Filter by Category first
   const categoryQuests = npcQuests.filter((q) => {
     if (questCategory === 'all') return true;
     if (questCategory === 'story') return q.category === 'story';
-    if (questCategory === 'seasonal') return q.category === 'seasonal';
+    // ИСПРАВЛЕНО: Теперь сезонный квест фильтруется строго по текущему времени года
+    if (questCategory === 'seasonal') return q.category === 'seasonal' && q.season === effectiveSeason;
     if (questCategory === 'daily_npc') return !q.category || q.category === 'daily_npc';
     return true;
   });
+
 
   // Filter by Difficulty
   const filteredQuests = categoryQuests.filter((q) => {
@@ -187,7 +189,7 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
               id: 'seasonal',
               label: 'Сезон',
               icon: '🍂',
-              badge: 'Большой',
+              badge: `${npcQuests.filter((q) => q.category === 'seasonal' && q.season === effectiveSeason && !q.completed).length}`,
               color: 'from-orange-600 to-amber-700',
             },
             {
@@ -212,7 +214,7 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
                 setQuestCategory(cat.id as any);
                 const first = npcQuests.find((q) => {
                   if (cat.id === 'story') return q.category === 'story';
-                  if (cat.id === 'seasonal') return q.category === 'seasonal' && (q.season === effectiveSeason || !q.season);
+                  if (cat.id === 'seasonal') return q.category === 'seasonal' && q.season === effectiveSeason;
                   if (cat.id === 'daily_npc') return !q.category || q.category === 'daily_npc';
                   return true;
                 });
