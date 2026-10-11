@@ -361,60 +361,61 @@ export function useGameState() {
     }
   }, [coins, gems, level, xp, lastDailyClaimDate, dailyStreak, barnCapacity, inventory, plots, animals, buildings, trees, orders, achievements, stats, neighbors, seasonMode, lastSeasonalSurpriseDate, purchasedDecorations, placedDecorations, journalEntries, npcQuests, lastQuestsRefreshDate, playerGifts, playerVisitLogs]);
 
-// XP & Level-up system (Вариант со сбросом опыта до 0)
+// XP & Level-up system (Железный сброс в 0 через линейный IF)
 const addXp = useCallback((amount: number) => {
   setXp((prevXp) => {
-    let newTotal = prevXp + amount;
-    let levelsGained = 0;
-    
-    setLevel((currentLevel) => {
-      let calcLevel = currentLevel;
-      let nextLevelRequirement = LEVEL_REQUIREMENTS[calcLevel] || calcLevel * 1000;
+    const nextLevelRequirement = LEVEL_REQUIREMENTS[level] || level * 1000;
+    const newTotal = prevXp + amount;
 
-      while (newTotal >= nextLevelRequirement) {
-        newTotal = 0; // СБРАСЫВАЕМ ОПЫТ ДО 0 ПРИ ПЕРЕХОДЕ
-        calcLevel += 1;
-        levelsGained += 1;
+    // Если набрали достаточно опыта для ОДНОГО следующего уровня
+    if (newTotal >= nextLevelRequirement) {
+      const nextLvl = level + 1;
+      
+      // Меняем уровни и ресурсы напрямую
+      setLevel(nextLvl);
+      if (typeof setNewLevelUnlocked === 'function') setNewLevelUnlocked(nextLvl);
+      setGems((g) => g + 3);
+      setCoins((c) => c + nextLvl * 50);
 
-        setGems((g) => g + 3);
-        setCoins((c) => c + calcLevel * 50);
+      // Эффекты
+      if (typeof sound?.playLevelUp === 'function') sound.playLevelUp();
+      if (typeof vibrateLevelUp === 'function') vibrateLevelUp();
 
-        if (typeof sound?.playLevelUp === 'function') sound.playLevelUp();
-        if (typeof vibrateLevelUp === 'function') vibrateLevelUp();
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
 
-        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-        showFloating(`Уровень ${calcLevel}! +3 💎 +${calcLevel * 50} 🪙`, 'text-emerald-300');
+      showFloating(`Уровень ${nextLvl}! +3 💎 +${nextLvl * 50} 🪙`, 'text-emerald-300');
 
-        const nowObj = new Date();
-        setJournalEntries((prev) => [
-          {
-            id: `journal_lvl_${calcLevel}_${Date.now()}`,
-            type: 'level_up',
-            title: `Достигнут Уровень ${calcLevel}`,
-            description: `Фермер достиг ${calcLevel}-го уровня мастерства! Награда: +3 💎, +${calcLevel * 50} 🪙.`,
-            timestamp: nowObj.toISOString(),
-            formattedDate: formatJournalDate(nowObj),
-            icon: '🌟',
-            badge: `Уровень ${calcLevel}`,
-            levelNumber: calcLevel,
-            rewardsSummary: `+3 💎, +${calcLevel * 50} 🪙`,
-          },
-          ...prev,
-        ]);
+      // Запись в журнал
+      const nowObj = new Date();
+      setJournalEntries((prev) => [
+        {
+          id: `journal_lvl_${nextLvl}_${Date.now()}`,
+          type: 'level_up',
+          title: `Достигнут Уровень ${nextLvl}`,
+          description: `Фермер достиг ${nextLvl}-го уровня мастерства! Награда: +3 💎, +${nextLvl * 50} 🪙.`,
+          timestamp: nowObj.toISOString(),
+          formattedDate: formatJournalDate(nowObj),
+          icon: '🌟',
+          badge: `Уровень ${nextLvl}`,
+          levelNumber: nextLvl,
+          rewardsSummary: `+3 💎, +${nextLvl * 50} 🪙`,
+        },
+        ...prev,
+      ]);
 
-        nextLevelRequirement = LEVEL_REQUIREMENTS[calcLevel] || calcLevel * 1000;
-      }
+      // ЖЕСТКИЙ СБРОС: Возвращаем ровно 0 на новом уровне, весь излишек сгорает
+      return 0; 
+    }
 
-      if (levelsGained > 0) {
-        setNewLevelUnlocked(calcLevel);
-      }
-
-      return calcLevel;
-    });
-
+    // Если уровень не повысился, просто прибавляем опыт как обычно
     return newTotal;
   });
-}, [showFloating]);
+}, [level, showFloating]); // <-- Обязательно добавляем level в зависимости, так как мы убрали сложный setLevel(prev => ...)
+
 
 
 
