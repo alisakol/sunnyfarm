@@ -7,7 +7,10 @@
   "orientation": "portrait",
   "background_color": "#2e7d32",
   "theme_color": "#48bb78",
-  "categories": ["games", "simulation"],
+  "categories": [
+    "games",
+    "simulation"
+  ],
   "id": "/?source=pwa",
   "icons": [
     {
@@ -37,19 +40,18 @@
   ],
   "screenshots": [
     {
-      "src": "/screenshot-mobile.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
+      "src": "/screenshot-mobile.jpg",
+      "sizes": "1080x2400",
+      "type": "image/jpeg",
       "form_factor": "narrow",
       "label": "Мобильный интерфейс Солнечной Фермы"
     },
     {
-      "src": "/screenshot-desktop.png",
-      "sizes": "1920x1080",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Игровое поле на ПК"
+      "src": "/screenshot-desktop.jpg",
+      "sizes": "1080x2400",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Мобильный интерфейс Солнечной Фермы"
     }
   ]
 }
-
