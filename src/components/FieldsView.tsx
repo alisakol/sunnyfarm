@@ -289,14 +289,19 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
         />
       </div>
 
-      {/* Active NPC Visitors Road (Сельская Дорога с Гостями и Квестами) */}
+            {/* Active NPC Visitors Road (Сельская Дорога с Гостями и Квестами) */}
       {npcQuests && npcQuests.length > 0 && onOpenQuests && (
         <NpcVisitorsRoad
-          npcQuests={npcQuests}
+          // Фильтруем квесты: оставляем все обычные, а сезонные — только текущего сезона
+          npcQuests={npcQuests.filter((quest) => {
+            if (quest.category !== 'seasonal') return true;
+            return quest.season === season;
+          })}
           inventory={inventory}
           onOpenQuests={(questId) => onOpenQuests(questId)}
         />
       )}
+
 
       {/* Farm Aesthetic Decorations Promenade (Аллея Декораций Фермы) */}
       <div className="mb-3 bg-gradient-to-r from-stone-900/90 via-emerald-950/80 to-stone-900/90 border border-amber-600/40 rounded-2xl p-2.5 shadow-md">
