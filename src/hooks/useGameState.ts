@@ -361,51 +361,61 @@ export function useGameState() {
     }
   }, [coins, gems, level, xp, lastDailyClaimDate, dailyStreak, barnCapacity, inventory, plots, animals, buildings, trees, orders, achievements, stats, neighbors, seasonMode, lastSeasonalSurpriseDate, purchasedDecorations, placedDecorations, journalEntries, npcQuests, lastQuestsRefreshDate, playerGifts, playerVisitLogs]);
 
-  // XP & Level-up system
-  const addXp = useCallback((amount: number) => {
-    setXp((prevXp) => {
-      const currentLevel = level;
-      const nextLevelRequirement = LEVEL_REQUIREMENTS[currentLevel] || currentLevel * 1000;
-      const newTotal = prevXp + amount;
+// XP & Level-up system
+const addXp = useCallback((amount: number) => {
+  setXp((prevXp) => {
+    let currentLevel = level;
+    let newTotal = prevXp + amount;
+    let nextLevelRequirement = LEVEL_REQUIREMENTS[currentLevel] || currentLevel * 1000;
 
-      if (newTotal >= nextLevelRequirement && currentLevel < 10) {
-        const nextLvl = currentLevel + 1;
-        setLevel(nextLvl);
-        setNewLevelUnlocked(nextLvl);
-        setGems((g) => g + 3);
-        setCoins((c) => c + nextLvl * 50);
-        sound.playLevelUp();
-        vibrateLevelUp();
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 },
-        });
-        showFloating(`Уровень ${nextLvl}! +3 💎 +${nextLvl * 50} 🪙`, 'text-emerald-300');
+    // Цикл работает, пока опыта хватает на повышение, БЕЗ ограничения < 10
+    while (newTotal >= nextLevelRequirement) {
+      newTotal -= nextLevelRequirement;
+      currentLevel += 1;
+      
+      const nextLvl = currentLevel;
+      setLevel(nextLvl);
+      setNewLevelUnlocked(nextLvl);
+      setGems((g) => g + 3);
+      setCoins((c) => c + nextLvl * 50);
+      
+      // Эффекты и звуки
+      if (typeof sound?.playLevelUp === 'function') sound.playLevelUp();
+      if (typeof vibrateLevelUp === 'function') vibrateLevelUp();
+      
+      confetti({
+        particleCount: 80,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+      
+      showFloating(`Уровень ${nextLvl}! +3 💎 +${nextLvl * 50} 🪙`, 'text-emerald-300');
 
-        // Automatically record to Farmer's Journal
-        const nowObj = new Date();
-        setJournalEntries((prev) => [
-          {
-            id: `journal_lvl_${nextLvl}_${Date.now()}`,
-            type: 'level_up',
-            title: `Достигнут Уровень ${nextLvl}`,
-            description: `Фермер достиг ${nextLvl}-го уровня мастерства! Разблокированы новые земельные наделы, семена и рецепты крафта. Получена награда: +3 💎, +${nextLvl * 50} 🪙.`,
-            timestamp: nowObj.toISOString(),
-            formattedDate: formatJournalDate(nowObj),
-            icon: '🌟',
-            badge: `Уровень ${nextLvl}`,
-            levelNumber: nextLvl,
-            rewardsSummary: `+3 💎, +${nextLvl * 50} 🪙`,
-          },
-          ...prev,
-        ]);
+      // Автоматическая запись в Дневник Фермера
+      const nowObj = new Date();
+      setJournalEntries((prev) => [
+        {
+          id: `journal_lvl_${nextLvl}_${Date.now()}`,
+          type: 'level_up',
+          title: `Достигнут Уровень ${nextLvl}`,
+          description: `Фермер достиг ${nextLvl}-го уровня мастерства! Разблокированы новые земельные наделы, семена и рецепты крафта. Получена награда: +3 💎, +${nextLvl * 50} 🪙.`,
+          timestamp: nowObj.toISOString(),
+          formattedDate: formatJournalDate(nowObj),
+          icon: '🌟',
+          badge: `Уровень ${nextLvl}`,
+          levelNumber: nextLvl,
+          rewardsSummary: `+3 💎, +${nextLvl * 50} 🪙`,
+        },
+        ...prev,
+      ]);
 
-        return newTotal - nextLevelRequirement;
-      }
-      return newTotal;
-    });
-  }, [level, showFloating]);
+      // Обновляем требование опыта для следующей итерации цикла (если уровней апнулось несколько)
+      nextLevelRequirement = LEVEL_REQUIREMENTS[currentLevel] || currentLevel * 1000;
+    }
+    
+    return newTotal;
+  });
+}, [level, showFloating]);
 
   // Main 1-second game tick loop
   useEffect(() => {
