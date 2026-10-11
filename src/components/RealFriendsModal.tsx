@@ -75,7 +75,7 @@ export const RealFriendsModal: React.FC<RealFriendsModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base sm:text-lg font-black font-game text-amber-200 leading-tight">
-                  Друзья Фермеры (Google)
+                  Друзья Фермеры 
                 </h2>
                 <span className="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-600/60 font-bold">
                   Реальные игроки
