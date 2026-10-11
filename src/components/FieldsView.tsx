@@ -76,6 +76,15 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
 }) => {
   const [showWeatherSelector, setShowWeatherSelector] = useState<boolean>(false);
   const [cropFilter, setCropFilter] = useState<'all' | 'seasonal' | 'standard'>('all');
+    // Автоматический фильтр культур по текущему сезону игры
+  const filteredCrops = Object.values(CROPS).filter((crop) => {
+    // 1. Пшеница, морковь, кукуруза, клубника (нет поля season) доступны всегда
+    if (!crop.season) return true;
+    
+    // 2. Сезонные культуры отображаются только в свой собственный сезон
+    return crop.season === season;
+  });
+
   const now = Date.now();
 
   const weatherCfg = WEATHER_CONFIG[weather] || WEATHER_CONFIG.sunny;
@@ -131,6 +140,14 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
     }
 
     if (!plot.cropId) {
+      // КРИТИЧЕСКАЯ ПРОВЕРКА СЕЗОНА ПЕРЕД ПОСАДКОЙ:
+      const selectedCrop = CROPS[selectedCropId];
+      if (selectedCrop && selectedCrop.season && selectedCrop.season !== season) {
+        // Если в вашей игре есть функция всплывающих уведомлений, можно раскомментировать строку ниже:
+         alert(`Эту культуру можно сажать только в сезон: ${selectedCrop.season}`);
+        return; // Полностью блокируем посадку
+      }
+
       // Empty plot: plant current selected crop
       onPlant(plot.id);
       return;
@@ -154,6 +171,7 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
       onHarvest(plot.id); // shows remaining time toast
     }
   };
+
 
   return (
     <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar pb-3 px-3">
@@ -711,7 +729,7 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
               }`}
             >
               <span>{seasonCfg.icon}</span>
-              <span>Сезонные ({Object.values(CROPS).filter((c) => Boolean(c.season)).length})</span>
+             <span>Сезонные ({filteredCrops.filter((c) => Boolean(c.season)).length})</span>
             </button>
             <button
               onClick={() => setCropFilter('standard')}
