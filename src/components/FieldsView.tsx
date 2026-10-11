@@ -748,14 +748,14 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
           </span>
         </div>
 
-        {/* Crops Horizontal Scroll Selector */}
+                {/* Crops Horizontal Scroll Selector */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-				  {Object.values(CROPS)
-		  .filter((crop) => {
-			if (cropFilter === 'seasonal') return Boolean(crop.season);
-			if (cropFilter === 'standard') return !crop.season;
-			return true;
-		  })
+          {filteredCrops
+            .filter((crop) => {
+              if (cropFilter === 'seasonal') return Boolean(crop.season);
+              if (cropFilter === 'standard') return !crop.season;
+              return true;
+            })
             .map((crop) => {
               const isUnlocked = level >= crop.minLevel;
               const isSelected = selectedCropId === crop.id;
@@ -779,6 +779,15 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
                       : 'bg-emerald-900/40 border-emerald-700/60 text-emerald-100 hover:bg-emerald-850'
                   }`}
                   title={crop.description}
+                >
+                  {/* Внутренняя верстка вашей кнопки (иконка, название и т.д.) */}
+                  <span className="text-xl">{crop.emoji}</span>
+                  <span className="text-[11px] font-bold mt-0.5">{crop.name}</span>
+                </button>
+              );
+            })}
+        </div>
+
                 >
                   {/* Seasonal badge */}
                   {crop.season && (
