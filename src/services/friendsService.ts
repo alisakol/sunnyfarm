@@ -229,7 +229,7 @@ export function convertPlayerToNeighborFarm(
     ownerAvatar,
     level: lvl,
     reputation: player.reputation || 10,
-    bio: player.bio || 'Привет! Я фермер, и я развиваю свою солнечную ферму.',
+    //bio: player.bio || 'Привет! Я фермер, и я развиваю свою солнечную ферму.',
     specialty: player.specialty || (lvl >= 4 ? 'Органическое земледелие и выпечка' : 'Свежее фермерское молоко и клубника'),
     coverEmoji: '✨',
     cropsPreview: [

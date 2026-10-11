@@ -177,7 +177,7 @@ export default function App() {
         farmName: `Ферма ${user.displayName || 'Фермера'}`,
         specialty: level >= 4 ? 'Органическое земледелие и выпечка' : 'Свежее фермерское молоко и клубника',
         reputation: 15,
-        bio: 'Привет! Я фермер, и я развиваю свою солнечную ферму.',
+        //bio: 'Привет! Я фермер, и я развиваю свою солнечную ферму.',
       }).catch((e) => console.warn('Could not sync user profile:', e));
     }
   }, [user, level]);
