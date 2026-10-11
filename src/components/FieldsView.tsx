@@ -707,55 +707,14 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
           </button>
         </div>
 
-        {/* Crops Filter Tabs & Horizontal Scroll Selector */}
-        <div className="flex items-center justify-between gap-1 pt-1 pb-0.5 px-0.5">
-          <div className="flex items-center gap-1 text-[10px]">
-            <button
-              onClick={() => setCropFilter('all')}
-              className={`px-2 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
-                cropFilter === 'all'
-                  ? 'bg-amber-500 text-stone-950 shadow-xs'
-                  : 'bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60'
-              }`}
-            >
-              Все семена
-            </button>
-            <button
-              onClick={() => setCropFilter('seasonal')}
-              className={`px-2 py-0.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                cropFilter === 'seasonal'
-                  ? 'bg-amber-500 text-stone-950 shadow-xs'
-                  : 'bg-amber-950/60 text-amber-300 border border-amber-600/40 hover:bg-amber-900/60'
-              }`}
-            >
-              <span>{seasonCfg.icon}</span>
-             <span>Сезонные ({filteredCrops.filter((c) => Boolean(c.season)).length})</span>
-            </button>
-            <button
-              onClick={() => setCropFilter('standard')}
-              className={`px-2 py-0.5 rounded-lg font-bold transition-all cursor-pointer ${
-                cropFilter === 'standard'
-                  ? 'bg-amber-500 text-stone-950 shadow-xs'
-                  : 'bg-emerald-950/60 text-emerald-300 hover:bg-emerald-900/60'
-              }`}
-            >
-              🌾 Базовые
-            </button>
-          </div>
-
-          <span className="text-[9px] text-amber-300 font-medium hidden sm:inline">
-            {seasonCfg.icon} В сезон: <strong>+45% скорости</strong>
-          </span>
-        </div>
-
-        {/* Crops Horizontal Scroll Selector */}
+                 {/* Crops Horizontal Scroll Selector */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
-				  {Object.values(CROPS)
-		  .filter((crop) => {
-			if (cropFilter === 'seasonal') return Boolean(crop.season);
-			if (cropFilter === 'standard') return !crop.season;
-			return true;
-		  })
+          {filteredCrops
+            .filter((crop) => {
+              if (cropFilter === 'seasonal') return Boolean(crop.season);
+              if (cropFilter === 'standard') return !crop.season;
+              return true;
+            })
             .map((crop) => {
               const isUnlocked = level >= crop.minLevel;
               const isSelected = selectedCropId === crop.id;
@@ -780,6 +739,15 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
                   }`}
                   title={crop.description}
                 >
+                  {/* Контент внутри кнопки семени */}
+                  <span className="text-xl">{crop.emoji}</span>
+                  <span className="text-[11px] font-bold mt-0.5">{crop.name}</span>
+                  <span className="text-[9px] text-amber-300/90 font-medium">🪙 {crop.cost}</span>
+                </button>
+              );
+            })}
+        </div>
+
                   {/* Seasonal badge */}
                   {crop.season && (
                     <span
