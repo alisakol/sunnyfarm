@@ -130,15 +130,7 @@ export const AndroidFrame: React.FC<AndroidFrameProps> = ({
             <RotateCw className="w-3.5 h-3.5 animate-spin-once" />
             <span>Переворот ({orientation === 'portrait' ? '90°' : 'Вертикаль'})</span>
           </button>
-
-          {/* Install PWA Button */}
-          <button
-            onClick={onOpenInstallModal}
-            className="flex items-center gap-1 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 border border-emerald-400/60 text-white font-bold rounded-xl px-2.5 py-1 text-[11px] shadow-sm transition-transform active:scale-95 cursor-pointer"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Установить</span>
-          </button>
+		  
         </div>
       </div>
 
