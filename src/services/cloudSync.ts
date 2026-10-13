@@ -1,5 +1,11 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { signInWithPopup, signOut, User } from 'firebase/auth';
+import { 
+  signInWithPopup, 
+  signOut, 
+  User, 
+  createUserWithEmailAndPassword, 
+  signInWithEmailAndPassword 
+} from 'firebase/auth';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from './firebase';
 
 export interface CloudSavePayload {
@@ -30,11 +36,51 @@ export interface CloudSavePayload {
   playerVisitLogs?: any[];
 }
 
+// --- Новая функция: Регистрация по почте и паролю ---
+export async function registerWithEmail(email: string, password: string): Promise<User | null> {
+  try {
+    const result = await createUserWithEmailAndPassword(auth, email, password);
+    if (result.user) {
+      const userRef = doc(db, 'users', result.user.uid);
+      try {
+        await setDoc(
+          userRef,
+          {
+            id: result.user.uid,
+            email: result.user.email || email,
+            displayName: email.split('@')[0] || 'Фермер', // Берём часть до @ в качестве никнейма
+            photoURL: '',
+            lastLoginAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn('Could not save user profile to firestore:', err);
+      }
+    }
+    return result.user;
+  } catch (error) {
+    console.error('Email Registration failed:', error);
+    throw error;
+  }
+}
+
+// --- Новая функция: Вход по почте и паролю ---
+export async function loginWithEmail(email: string, password: string): Promise<User | null> {
+  try {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    return result.user;
+  } catch (error) {
+    console.error('Email Sign-In failed:', error);
+    throw error;
+  }
+}
+
+// --- Вход через Google (сохранён без изменений) ---
 export async function loginWithGooglePopup(): Promise<User | null> {
   try {
     const result = await signInWithPopup(auth, googleProvider);
     if (result.user) {
-      // Upsert profile document
       const userRef = doc(db, 'users', result.user.uid);
       try {
         await setDoc(
@@ -79,7 +125,6 @@ export async function saveFarmToFirestore(userId: string, farmState: CloudSavePa
       updatedAt: new Date().toISOString(),
     });
 
-    // Also update the public user profile document so friends and community immediately see the true level!
     const userRef = doc(db, 'users', userId);
     await setDoc(
       userRef,

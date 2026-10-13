@@ -7,6 +7,8 @@ import {
   logoutUser,
   saveFarmToFirestore,
   loadFarmFromFirestore,
+  loginWithEmail,       // Добавлен импорт функции входа
+  registerWithEmail,    // Добавлен импорт функции регистрации
 } from '../services/cloudSync';
 
 interface AuthContextType {
@@ -16,6 +18,8 @@ interface AuthContextType {
   lastSyncedAt: Date | null;
   syncError: string | null;
   login: () => Promise<User | null>;
+  loginEmail: (email: string, password: string) => Promise<User | null>;       // Метод входа по Email
+  registerEmail: (email: string, password: string) => Promise<User | null>;    // Метод регистрации по Email
   logout: () => Promise<void>;
   saveToCloud: (state: CloudSavePayload) => Promise<boolean>;
   loadFromCloud: () => Promise<CloudSavePayload | null>;
@@ -46,6 +50,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return u;
     } catch (err: any) {
       const msg = err?.message || 'Ошибка авторизации через Google';
+      setSyncError(msg);
+      throw err;
+    }
+  }, []);
+
+  // --- Реализация входа по Email ---
+  const loginEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
+    try {
+      setSyncError(null);
+      const u = await loginWithEmail(email, password);
+      return u;
+    } catch (err: any) {
+      const msg = err?.message || 'Неверный логин или пароль';
+      setSyncError(msg);
+      throw err;
+    }
+  }, []);
+
+  // --- Реализация регистрации по Email ---
+  const registerEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
+    try {
+      setSyncError(null);
+      const u = await registerWithEmail(email, password);
+      return u;
+    } catch (err: any) {
+      const msg = err?.message || 'Ошибка при создании аккаунта';
       setSyncError(msg);
       throw err;
     }
@@ -111,6 +141,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         lastSyncedAt,
         syncError,
         login,
+        loginEmail,       // Передано в провайдер
+        registerEmail,    // Передано в провайдер
         logout,
         saveToCloud,
         loadFromCloud,
