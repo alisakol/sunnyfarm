@@ -135,23 +135,20 @@ export function useGameState() {
     apple: 3,
   });
 
-  // Farm Plots (36 plots total, 4 initial)
+  // Farm Plots (12 plots total, 4 initial)
   const [plots, setPlots] = useState<FarmPlot[]>(() => {
-    return Array.from({ length: 36 }, (_, i) => {
-      const unlockLevel =
-        i < 4 ? 1 : i < 12 ? Math.floor(i / 2) + 1 : i < 20 ? Math.floor(i / 2) + 1 : 11 + (i - 19) * 2;
-      return {
-        id: i,
-        unlocked: i < 4,
-        unlockLevel,
-        unlockCost: (i + 1) * 45,
-        cropId: null,
-        plantedAt: null,
-        watered: false,
-        fertilized: false,
-      };
-    });
+    return Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      unlocked: i < 4,
+      unlockLevel: Math.floor(i / 2) + 1,
+      unlockCost: (i + 1) * 35,
+      cropId: null,
+      plantedAt: null,
+      watered: false,
+      fertilized: false,
+    }));
   });
+
 
   // Stables & Horses System
   const [playerHorses, setPlayerHorses] = useState<PlayerHorse[]>(INITIAL_PLAYER_HORSES);
