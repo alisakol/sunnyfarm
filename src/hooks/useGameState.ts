@@ -135,13 +135,13 @@ export function useGameState() {
     apple: 3,
   });
 
-  // Farm Plots (12 plots total, 4 initial)
+    // Farm Plots (Увеличено до 24 грядок, 6 открыто изначально)
   const [plots, setPlots] = useState<FarmPlot[]>(() => {
-    return Array.from({ length: 12 }, (_, i) => ({
+    return Array.from({ length: 24 }, (_, i) => ({
       id: i,
-      unlocked: i < 4,
-      unlockLevel: Math.floor(i / 2) + 1,
-      unlockCost: (i + 1) * 35,
+      unlocked: i < 6, // Первые 6 грядок доступны сразу
+      unlockLevel: Math.floor(i / 2) + 1, // Требуемый уровень растет каждые 2 грядки
+      unlockCost: (i + 1) * 50, // Цена плавно увеличивается с каждой грядкой
       cropId: null,
       plantedAt: null,
       watered: false,
