@@ -13,7 +13,16 @@ export type CropId =
   | 'tulip'
   | 'green_peas'
   | 'peach'
-  | 'bell_pepper';
+  | 'bell_pepper'
+  | 'grape'
+  | 'eggplant'
+  | 'pineapple'
+  | 'artichoke'
+  | 'truffle_mushroom'
+  | 'lavender'
+  | 'golden_wheat'
+  | 'dragonfruit'
+  | 'starfruit';
 
 export interface CropConfig {
   id: CropId;
@@ -67,7 +76,14 @@ export interface AnimalState {
   lastPetAt: number | null;
 }
 
-export type BuildingId = 'windmill' | 'bakery' | 'dairy' | 'loom';
+export type BuildingId =
+  | 'windmill'
+  | 'bakery'
+  | 'dairy'
+  | 'loom'
+  | 'jam_maker'
+  | 'juice_press'
+  | 'confectionery';
 
 export interface Recipe {
   id: string;
@@ -82,7 +98,7 @@ export interface Recipe {
   xp: number;
   minLevel: number;
   description?: string;
-  category?: 'baking' | 'milling' | 'dairy' | 'weaving';
+  category?: 'baking' | 'milling' | 'dairy' | 'weaving' | 'preserves' | 'drinks' | 'sweets';
 }
 
 export interface CraftingSlot {
@@ -109,7 +125,7 @@ export interface InventoryItem {
   name: string;
   emoji: string;
   count: number;
-  category: 'crop' | 'animal' | 'product' | 'fruit';
+  category: 'crop' | 'animal' | 'product' | 'fruit' | 'tack' | 'treasure';
   sellPrice: number;
 }
 
