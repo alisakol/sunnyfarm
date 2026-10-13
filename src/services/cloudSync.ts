@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { 
-  signInWithPopup, 
+  signInWithPopup,
   signOut, 
   User, 
   createUserWithEmailAndPassword, 
