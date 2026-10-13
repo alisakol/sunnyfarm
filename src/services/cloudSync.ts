@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { 
-  signInWithPopup,
+  signInWithPopup, 
   signOut, 
   User, 
   createUserWithEmailAndPassword, 
@@ -50,7 +50,7 @@ export async function registerWithEmail(email: string, password: string): Promis
           {
             id: result.user.uid,
             email: result.user.email || email,
-            displayName: email.split('@')[0] || 'Фермер', // Часть до @ в качестве никнейма
+            displayName: email.split('@')[0] || 'Фермер',
             photoURL: '',
             lastLoginAt: new Date().toISOString(),
           },
@@ -78,7 +78,7 @@ export async function loginWithEmail(email: string, password: string): Promise<U
   }
 }
 
-// --- Связывание текущего аккаунта с почтой и паролем ---
+// --- Явно экспортированная функция связывания ---
 export async function linkEmailPassword(email: string, password: string): Promise<User | null> {
   try {
     const currentUser = auth.currentUser;
@@ -86,10 +86,7 @@ export async function linkEmailPassword(email: string, password: string): Promis
       throw new Error('Нет активного пользователя для привязки');
     }
 
-    // Создаем учетные данные провайдера Email/Password
     const credential = EmailAuthProvider.credential(email, password);
-    
-    // Привязываем почту/пароль к существующей учетной записи
     const result = await linkWithCredential(currentUser, credential);
     
     if (result.user) {
