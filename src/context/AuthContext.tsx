@@ -9,7 +9,6 @@ import {
   loadFarmFromFirestore,
   loginEmail,
   registerEmail,
-  linkEmailPassword,
 } from '../services/cloudSync';
 
 interface AuthContextType {
@@ -21,7 +20,6 @@ interface AuthContextType {
   login: () => Promise<User | null>;
   loginEmail: (email: string, password: string) => Promise<User | null>;
   registerEmail: (email: string, password: string) => Promise<User | null>;
-  linkEmail: (email: string, password: string) => Promise<User | null>; // <-- Добавлен метод в тип
   logout: () => Promise<void>;
   saveToCloud: (state: CloudSavePayload) => Promise<boolean>;
   loadFromCloud: () => Promise<CloudSavePayload | null>;
@@ -48,51 +46,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const login = useCallback(async (): Promise<User | null> => {
     try {
       setSyncError(null);
-      const u = await loginWithGooglePopup();
-      return u;
+      return await loginWithGooglePopup();
     } catch (err: any) {
-      const msg = err?.message || 'Ошибка авторизации через Google';
-      setSyncError(msg);
+      setSyncError(err?.message || 'Ошибка авторизации через Google');
       throw err;
     }
   }, []);
 
-  // --- Реализация входа по Email ---
   const loginEmailAction = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       setSyncError(null);
-      const u = await loginEmail(email, password);
-      return u;
+      return await loginEmail(email, password);
     } catch (err: any) {
-      const msg = err?.message || 'Неверный логин или пароль';
-      setSyncError(msg);
+      setSyncError(err?.message || 'Неверный логин или пароль');
       throw err;
     }
   }, []);
 
-  // --- Реализация регистрации по Email ---
   const registerEmailAction = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       setSyncError(null);
-      const u = await registerEmail(email, password);
-      return u;
+      return await registerEmail(email, password);
     } catch (err: any) {
-      const msg = err?.message || 'Ошибка при создании аккаунта';
-      setSyncError(msg);
-      throw err;
-    }
-  }, []);
-
-  // --- Реализация связывания почты с текущим аккаунтом ---
-  const linkEmailAction = useCallback(async (email: string, password: string): Promise<User | null> => {
-    try {
-      setSyncError(null);
-      const u = await linkEmailPassword(email, password);
-      setUser(u);
-      return u;
-    } catch (err: any) {
-      const msg = err?.message || 'Ошибка привязки почты';
-      setSyncError(msg);
+      setSyncError(err?.message || 'Ошибка при создании аккаунта');
       throw err;
     }
   }, []);
@@ -114,12 +90,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setSyncError(null);
       try {
         const success = await saveFarmToFirestore(user.uid, state);
-        if (success) {
-          setLastSyncedAt(new Date());
-        }
+        if (success) setLastSyncedAt(new Date());
         return success;
       } catch (err: any) {
-        console.error('Save to cloud failed:', err);
         setSyncError('Не удалось синхронизировать с облаком');
         return false;
       } finally {
@@ -135,12 +108,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSyncError(null);
     try {
       const data = await loadFarmFromFirestore(user.uid);
-      if (data) {
-        setLastSyncedAt(new Date());
-      }
+      if (data) setLastSyncedAt(new Date());
       return data;
     } catch (err: any) {
-      console.error('Load from cloud failed:', err);
       setSyncError('Ошибка загрузки из облака');
       return null;
     } finally {
@@ -159,7 +129,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login,
         loginEmail: loginEmailAction,
         registerEmail: registerEmailAction,
-        linkEmail: linkEmailAction, // <-- Передано в провайдер
         logout,
         saveToCloud,
         loadFromCloud,
@@ -172,8 +141,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error('useAuth must be used within an AuthProvider');
   return context;
 };

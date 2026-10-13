@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { X, Cloud, CloudCheck, RefreshCw, LogOut, ShieldCheck, Smartphone, Laptop, AlertCircle, CheckCircle2, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { CloudSavePayload } from '../services/cloudSync';
+import { EmailAuthProvider, linkWithCredential } from 'firebase/auth';
+import { auth } from '../services/firebase';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -25,7 +27,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     login, 
     loginEmail, 
     registerEmail, 
-    linkEmail, 
     logout, 
     saveToCloud, 
     loadFromCloud 
@@ -40,7 +41,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
 
-  // Состояния для формы привязки почты (когда пользователь уже вошел, например, через Google)
+  // Состояния для формы привязки почты
   const [showLinkForm, setShowLinkForm] = useState<boolean>(false);
   const [linkEmailInput, setLinkEmailInput] = useState<string>('');
   const [linkPasswordInput, setLinkPasswordInput] = useState<string>('');
@@ -113,6 +114,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  // Автономная привязка почты через Firebase SDK
   const handleLinkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!linkEmailInput || !linkPasswordInput) {
@@ -124,11 +126,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       setIsProcessing(true);
       setLocalFeedback(null);
 
-      if (typeof linkEmail !== 'function') {
-        throw new Error('linkEmail is not implemented in AuthContext');
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('Нет активного пользователя');
       }
 
-      await linkEmail(linkEmailInput, linkPasswordInput);
+      const credential = EmailAuthProvider.credential(linkEmailInput, linkPasswordInput);
+      await linkWithCredential(currentUser, credential);
+
       setLocalFeedback('Почта и пароль успешно привязаны к аккаунту!');
       setShowLinkForm(false);
       onShowNotification?.('Аккаунт успешно связан!', 'text-emerald-300');
@@ -391,7 +396,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             </div>
 
-            {/* Account Linking Section (For Google users to add password) */}
+            {/* Account Linking Section */}
             {!showLinkForm ? (
               <button
                 onClick={() => setShowLinkForm(true)}
