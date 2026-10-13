@@ -296,9 +296,9 @@ export function useGameState() {
         if (parsed.barnCapacity !== undefined) setBarnCapacity(parsed.barnCapacity);
         if (parsed.inventory) setInventory(parsed.inventory);
         if (parsed.plots) {
-          if (parsed.plots.length < 36) {
+          if (parsed.plots.length < 24) {
             const existingPlots = [...parsed.plots];
-            for (let i = existingPlots.length; i < 36; i++) {
+            for (let i = existingPlots.length; i < 24; i++) {
               const unlockLevel =
                 i < 4 ? 1 : i < 12 ? Math.floor(i / 2) + 1 : i < 20 ? Math.floor(i / 2) + 1 : 11 + (i - 19) * 2;
               existingPlots.push({
