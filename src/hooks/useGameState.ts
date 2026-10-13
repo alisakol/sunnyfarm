@@ -314,9 +314,11 @@ export function useGameState() {
             }
             setPlots(existingPlots);
           } else {
-            setPlots(parsed.plots);
+            // ✨ ИСПРАВЛЕНО: принудительно отсекаем всё, что выходит за лимит в 24 грядки
+            setPlots(parsed.plots.slice(0, 24));
           }
         }
+
         if (parsed.animals) setAnimals(parsed.animals);
         if (parsed.buildings) {
           const existingBuildingIds = new Set(parsed.buildings.map((b: any) => b.id));
