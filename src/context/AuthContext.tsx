@@ -9,7 +9,7 @@ import {
   loadFarmFromFirestore,
   loginEmail,
   registerEmail,
-  linkEmailPassword, // <-- Добавлен импорт функции привязки
+  linkEmailPassword,
 } from '../services/cloudSync';
 
 interface AuthContextType {
