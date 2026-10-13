@@ -817,7 +817,7 @@ export const RECIPES: Recipe[] = [
   {
     id: 'winter_glaze',
     name: 'Морозный Морс',
-    emoji: '🧃'
+    emoji: '🧃',
     buildingId: 'juice_press',
     craftTime: 28,
     ingredients: [
