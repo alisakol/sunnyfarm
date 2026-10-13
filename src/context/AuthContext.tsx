@@ -7,8 +7,9 @@ import {
   logoutUser,
   saveFarmToFirestore,
   loadFarmFromFirestore,
-  loginWithEmail,     // ✅ Верное имя
-  registerWithEmail,  // ✅ Верное имя
+  loginWithEmail,
+  registerWithEmail,
+  linkEmailPassword,
 } from '../services/cloudSync';
 
 interface AuthContextType {
@@ -20,6 +21,7 @@ interface AuthContextType {
   login: () => Promise<User | null>;
   loginEmail: (email: string, password: string) => Promise<User | null>;
   registerEmail: (email: string, password: string) => Promise<User | null>;
+  linkEmail: (email: string, password: string) => Promise<User | null>;
   logout: () => Promise<void>;
   saveToCloud: (state: CloudSavePayload) => Promise<boolean>;
   loadFromCloud: () => Promise<CloudSavePayload | null>;
@@ -56,7 +58,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loginEmailAction = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       setSyncError(null);
-      return await loginEmail(email, password);
+      return await loginWithEmail(email, password);
     } catch (err: any) {
       setSyncError(err?.message || 'Неверный логин или пароль');
       throw err;
@@ -66,9 +68,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const registerEmailAction = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       setSyncError(null);
-      return await registerEmail(email, password);
+      return await registerWithEmail(email, password);
     } catch (err: any) {
       setSyncError(err?.message || 'Ошибка при создании аккаунта');
+      throw err;
+    }
+  }, []);
+
+  const linkEmailAction = useCallback(async (email: string, password: string): Promise<User | null> => {
+    try {
+      setSyncError(null);
+      const u = await linkEmailPassword(email, password);
+      setUser(u);
+      return u;
+    } catch (err: any) {
+      setSyncError(err?.message || 'Ошибка привязки почты');
       throw err;
     }
   }, []);
@@ -129,6 +143,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         login,
         loginEmail: loginEmailAction,
         registerEmail: registerEmailAction,
+        linkEmail: linkEmailAction,
         logout,
         saveToCloud,
         loadFromCloud,
