@@ -16,20 +16,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onApplyCloudSave,
   onShowNotification,
 }) => {
-  // Убедитесь, что ваш AuthContext возвращает loginWithEmail и registerWithEmail (или аналогичные функции)
+  // Исправлено: приведение типа as any применено правильно ко всему вызову hook
   const { 
-  user, 
-  isLoadingAuth, 
-  isSyncing, 
-  lastSyncedAt, 
-  syncError, 
-  login, 
-  loginEmail,      // <-- исправили имя
-  registerEmail,   // <-- исправили имя
-  logout, 
-  saveToCloud, 
-  loadFromCloud 
-} = useAuth(); as any;
+    user, 
+    isLoadingAuth, 
+    isSyncing, 
+    lastSyncedAt, 
+    syncError, 
+    login, 
+    loginEmail, 
+    registerEmail, 
+    logout, 
+    saveToCloud, 
+    loadFromCloud 
+  } = useAuth() as any;
 
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -75,39 +75,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      setLocalFeedback('Заполните все поля');
-      return;
-    }
-
-    try {
-      setIsProcessing(true);
-      setLocalFeedback(null);
-
-      let u;
-      if (isSignUp) {
-        if (typeof registerEmail !== 'function') {
-          throw new Error('registerEmail is not implemented in AuthContext');
-        }
-        u = await registerEmail(email, password);
-        await handlePostAuthSuccess('Аккаунт успешно создан!');
-      } else {
-        if (typeof loginEmail !== 'function') {
-          throw new Error('loginEmail is not implemented in AuthContext');
-        }
-        u = await loginEmail(email, password);
-        await handlePostAuthSuccess('Вы успешно вошли в аккаунт!');
-      }
-    } catch (err: any) {
-      console.error('Email auth error:', err);
-      setLocalFeedback(err.message || 'Ошибка авторизации. Проверьте данные.');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-  
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
