@@ -1,6 +1,7 @@
 import React from 'react';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import { CROPS, ANIMALS, RECIPES, INITIAL_BUILDINGS } from '../utils/constants';
+import { HORSE_BREEDS, RIDE_ROUTES, TACK_CATALOG } from '../utils/stablesData';
 
 interface LevelUpModalProps {
   level: number;
@@ -13,6 +14,9 @@ export const LevelUpModal: React.FC<LevelUpModalProps> = ({ level, onClose }) =>
   const unlockedAnimals = Object.values(ANIMALS).filter((a) => a.minLevel === level);
   const unlockedBuildings = INITIAL_BUILDINGS.filter((b) => b.minLevel === level);
   const unlockedRecipes = RECIPES.filter((r) => r.minLevel === level);
+  const unlockedBreeds = Object.values(HORSE_BREEDS).filter((b) => b.minLevel === level);
+  const unlockedRoutes = RIDE_ROUTES.filter((r) => r.minPlayerLevel === level);
+  const unlockedTack = TACK_CATALOG.filter((t) => t.minLevel === level);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4 z-50 select-none animate-in fade-in duration-200">
@@ -82,10 +86,34 @@ export const LevelUpModal: React.FC<LevelUpModalProps> = ({ level, onClose }) =>
               </div>
             ))}
 
+            {unlockedBreeds.map((b) => (
+              <div key={b.id} className="flex items-center gap-2 text-white">
+                <span className="text-lg">{b.emoji}</span>
+                <span>Порода лошади: <b>{b.name}</b></span>
+              </div>
+            ))}
+
+            {unlockedRoutes.map((rt) => (
+              <div key={rt.id} className="flex items-center gap-2 text-white">
+                <span className="text-lg">{rt.emoji}</span>
+                <span>Верховой маршрут: <b>{rt.name}</b></span>
+              </div>
+            ))}
+
+            {unlockedTack.map((t) => (
+              <div key={t.id} className="flex items-center gap-2 text-white">
+                <span className="text-lg">{t.emoji}</span>
+                <span>Амуниция: <b>{t.name}</b></span>
+              </div>
+            ))}
+
             {unlockedCrops.length === 0 &&
               unlockedAnimals.length === 0 &&
               unlockedBuildings.length === 0 &&
-              unlockedRecipes.length === 0 && (
+              unlockedRecipes.length === 0 &&
+              unlockedBreeds.length === 0 &&
+              unlockedRoutes.length === 0 &&
+              unlockedTack.length === 0 && (
                 <div className="text-emerald-300 text-xs">
                   ✨ Открыты новые выгодные заказы на доске и расширение грядок!
                 </div>

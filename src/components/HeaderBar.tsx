@@ -29,6 +29,7 @@ interface HeaderBarProps {
   onOpenMap?: () => void;
   onOpenRecipeBook?: () => void;
   onOpenRealFriends?: () => void;
+  onOpenStables?: () => void;
   realFriendsCount?: number;
 }
 
@@ -60,6 +61,7 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onOpenMap,
   onOpenRecipeBook,
   onOpenRealFriends,
+  onOpenStables,
 }) => {
   const xpPercent = Math.min(100, Math.round((xp / (xpToNext || 1)) * 100));
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -307,6 +309,18 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             <span className="text-sm">{seasonIcons[season].icon}</span>
             <span className="text-[10px] font-medium hidden sm:inline">{seasonIcons[season].name}</span>
           </button>
+
+          {/* Stables Quick Button */}
+          {onOpenStables && (
+            <button
+              onClick={onOpenStables}
+              className="flex items-center gap-1 bg-amber-950/80 border border-amber-600/70 hover:border-amber-400 rounded-lg px-2 py-1 text-xs text-amber-200 transition-colors cursor-pointer shrink-0"
+              title="Императорская Конюшня: скакуны, прогулки и амуниция"
+            >
+              <span className="text-sm">🐴</span>
+              <span className="text-[11px] font-semibold hidden xs:inline whitespace-nowrap">Конюшня</span>
+            </button>
+          )}
 
           {/* Cloud Account & Cross-Device Sync Button */}
           <button

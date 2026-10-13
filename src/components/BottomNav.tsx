@@ -1,6 +1,15 @@
 import React from 'react';
 
-export type TabType = 'fields' | 'animals' | 'buildings' | 'decor' | 'neighbors' | 'orders' | 'barn' | 'achievements';
+export type TabType =
+  | 'fields'
+  | 'animals'
+  | 'stables'
+  | 'buildings'
+  | 'decor'
+  | 'neighbors'
+  | 'orders'
+  | 'barn'
+  | 'achievements';
 
 interface BottomNavProps {
   activeTab: TabType;
@@ -12,6 +21,7 @@ interface BottomNavProps {
   claimableAchievementsCount: number;
   availableNeighborsHelpCount?: number;
   availableDecorBadgeCount?: number;
+  activeRidesReadyCount?: number;
 }
 
 export const BottomNav: React.FC<BottomNavProps> = ({
@@ -24,10 +34,12 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   claimableAchievementsCount,
   availableNeighborsHelpCount = 0,
   availableDecorBadgeCount = 0,
+  activeRidesReadyCount = 0,
 }) => {
   const tabs = [
     { id: 'fields' as TabType, label: 'Поле', icon: '🌾', badge: readyCropsCount },
     { id: 'animals' as TabType, label: 'Загон', icon: '🐮', badge: readyAnimalsCount },
+    { id: 'stables' as TabType, label: 'Конюшня', icon: '🐴', badge: activeRidesReadyCount },
     { id: 'buildings' as TabType, label: 'Заводы', icon: '🥖', badge: readyBuildingsCount },
     { id: 'decor' as TabType, label: 'Декор', icon: '⛲', badge: availableDecorBadgeCount },
     { id: 'orders' as TabType, label: 'Заказы', icon: '🚚', badge: readyOrdersCount },
@@ -37,8 +49,8 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   ];
 
   return (
-    <nav className="w-full bg-emerald-950/95 backdrop-blur-md border-t border-emerald-800/80 px-1 py-1 z-20 select-none shrink-0 shadow-lg">
-      <div className="grid grid-cols-8 gap-0.5 sm:gap-1 max-w-xl md:max-w-3xl mx-auto">
+    <nav className="w-full bg-emerald-950/95 backdrop-blur-md border-t border-emerald-800/80 px-0.5 sm:px-1 py-1 z-20 select-none shrink-0 shadow-lg">
+      <div className="grid grid-cols-9 gap-0.5 max-w-xl md:max-w-3xl mx-auto">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (

@@ -13,7 +13,16 @@ export type CropId =
   | 'tulip'
   | 'green_peas'
   | 'peach'
-  | 'bell_pepper';
+  | 'bell_pepper'
+  | 'grape'
+  | 'eggplant'
+  | 'pineapple'
+  | 'artichoke'
+  | 'truffle_mushroom'
+  | 'lavender'
+  | 'golden_wheat'
+  | 'dragonfruit'
+  | 'starfruit';
 
 export interface CropConfig {
   id: CropId;
@@ -67,7 +76,14 @@ export interface AnimalState {
   lastPetAt: number | null;
 }
 
-export type BuildingId = 'windmill' | 'bakery' | 'dairy' | 'loom';
+export type BuildingId =
+  | 'windmill'
+  | 'bakery'
+  | 'dairy'
+  | 'loom'
+  | 'jam_maker'
+  | 'juice_press'
+  | 'confectionery';
 
 export interface Recipe {
   id: string;
@@ -82,7 +98,7 @@ export interface Recipe {
   xp: number;
   minLevel: number;
   description?: string;
-  category?: 'baking' | 'milling' | 'dairy' | 'weaving';
+  category?: 'baking' | 'milling' | 'dairy' | 'weaving' | 'preserves' | 'drinks' | 'sweets';
 }
 
 export interface CraftingSlot {
@@ -109,7 +125,7 @@ export interface InventoryItem {
   name: string;
   emoji: string;
   count: number;
-  category: 'crop' | 'animal' | 'product' | 'fruit';
+  category: 'crop' | 'animal' | 'product' | 'fruit' | 'tack' | 'treasure';
   sellPrice: number;
 }
 
@@ -380,6 +396,109 @@ export interface NpcQuest {
   };
   completed: boolean;
   completedAt?: string;
+}
+
+// ==================== STABLES & HORSES SYSTEM ====================
+
+export type HorseBreedId =
+  | 'orlov_trotter'
+  | 'arabian'
+  | 'friesian'
+  | 'akhal_teke'
+  | 'shire'
+  | 'appaloosa'
+  | 'pegasus';
+
+export type TackCategory = 'blanket' | 'bridle' | 'saddle' | 'horseshoe';
+
+export interface TackItem {
+  id: string;
+  name: string;
+  category: TackCategory;
+  emoji: string;
+  description: string;
+  costCoins?: number;
+  costGems?: number;
+  minLevel: number;
+  bonusSpeedPercent: number;
+  bonusRewardPercent: number;
+  bonusLuckPercent: number;
+  bonusEnergySavePercent: number;
+}
+
+export interface HorseBreedConfig {
+  id: HorseBreedId;
+  name: string;
+  coatColor: string;
+  emoji: string;
+  avatarIcon: string;
+  description: string;
+  traitName: string;
+  traitDescription: string;
+  costCoins: number;
+  costGems?: number;
+  minLevel: number;
+  baseSpeed: number; // 1-10
+  baseStamina: number; // 1-10
+  baseLuck: number; // 1-10
+}
+
+export interface PlayerHorse {
+  id: string;
+  breedId: HorseBreedId;
+  customName: string;
+  bondLevel: number; // 1 to 10
+  bondXp: number;
+  energy: number; // 0 to 100
+  maxEnergy: number; // 100
+  lastGroomedAt: number | null;
+  lastFedAt: number | null;
+  equippedTack: {
+    blanket?: string; // TackItem.id
+    bridle?: string;
+    saddle?: string;
+    horseshoe?: string;
+  };
+  totalRidesCompleted: number;
+  favoriteTreatItemId?: string;
+}
+
+export interface HorseRideDrop {
+  itemId: string;
+  name: string;
+  emoji: string;
+  count: number;
+  chance: number; // 0-1
+}
+
+export interface HorseRideRoute {
+  id: string;
+  name: string;
+  destination: string;
+  emoji: string;
+  badge: string;
+  description: string;
+  durationSeconds: number;
+  energyCost: number;
+  minBondLevel: number;
+  minPlayerLevel: number;
+  rewardMinCoins: number;
+  rewardMaxCoins: number;
+  rewardXp: number;
+  rewardGemsChance: number; // 0-1
+  rewardGemsAmount?: number;
+  bonusDrops: HorseRideDrop[];
+  events: string[]; // fun event log lines during the trip
+}
+
+export interface ActiveHorseRide {
+  id: string;
+  horseId: string;
+  routeId: string;
+  startedAt: number;
+  durationMs: number;
+  completed: boolean;
+  collected?: boolean;
 }
 
 

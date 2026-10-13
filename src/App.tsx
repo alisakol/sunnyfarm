@@ -6,6 +6,7 @@ import { BottomNav, TabType } from './components/BottomNav';
 import { FieldsView } from './components/FieldsView';
 import { AnimalsView } from './components/AnimalsView';
 import { BuildingsView } from './components/BuildingsView';
+import { StablesView } from './components/StablesView';
 import { OrdersView } from './components/OrdersView';
 import { BarnView } from './components/BarnView';
 import { AchievementsModal } from './components/AchievementsModal';
@@ -130,6 +131,19 @@ export default function App() {
     applyCloudSave,
     getCloudSavePayload,
     resetGame,
+    playerHorses,
+    activeHorseRides,
+    unlockedTackIds,
+    feedHorse,
+    groomHorse,
+    petHorse,
+    renameHorse,
+    equipTack,
+    buyTack,
+    buyHorseBreed,
+    startHorseRide,
+    speedUpHorseRide,
+    collectHorseRideReward,
   } = useGameState();
 
   const { user, isSyncing, saveToCloud, loadFromCloud } = useAuth();
@@ -177,7 +191,7 @@ export default function App() {
         farmName: `Ферма ${user.displayName || 'Фермера'}`,
         specialty: level >= 4 ? 'Органическое земледелие и выпечка' : 'Свежее фермерское молоко и клубника',
         reputation: 15,
-        //bio: 'Привет! Я фермер, и я развиваю свою солнечную ферму.',
+        bio: 'Привет! Я настоящий игрок из Google AI Studio, развиваю свою солнечную ферму.',
       }).catch((e) => console.warn('Could not sync user profile:', e));
     }
   }, [user, level]);
@@ -557,6 +571,7 @@ export default function App() {
         onOpenMap={() => setIsMapOpen(true)}
         onOpenRecipeBook={() => setIsRecipeBookOpen(true)}
         onOpenRealFriends={() => setIsRealFriendsOpen(true)}
+        onOpenStables={() => setActiveTab('stables')}
       />
 
 
@@ -639,6 +654,30 @@ export default function App() {
             onPetAnimal={petAnimal}
             onCollectProduct={collectAnimalProduct}
             onBuyAnimal={buyAnimal}
+            onOpenStables={() => setActiveTab('stables')}
+          />
+        )}
+
+        {activeTab === 'stables' && (
+          <StablesView
+            playerHorses={playerHorses}
+            activeHorseRides={activeHorseRides}
+            unlockedTackIds={unlockedTackIds}
+            inventory={inventory}
+            coins={coins}
+            gems={gems}
+            level={level}
+            onFeedHorse={feedHorse}
+            onGroomHorse={groomHorse}
+            onPetHorse={petHorse}
+            onRenameHorse={renameHorse}
+            onEquipTack={equipTack}
+            onBuyTack={buyTack}
+            onBuyHorseBreed={buyHorseBreed}
+            onStartHorseRide={startHorseRide}
+            onSpeedUpHorseRide={speedUpHorseRide}
+            onCollectHorseRideReward={collectHorseRideReward}
+            onGoToFarm={() => setActiveTab('fields')}
           />
         )}
 
@@ -717,6 +756,7 @@ export default function App() {
         claimableAchievementsCount={claimableAchievementsCount}
         availableNeighborsHelpCount={availableNeighborsHelpCount}
         availableDecorBadgeCount={availableDecorBadgeCount}
+        activeRidesReadyCount={activeHorseRides.filter((r) => r.completed || Date.now() - r.startedAt >= r.durationMs).length}
       />
 
       {/* Modals */}

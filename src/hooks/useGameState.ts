@@ -24,6 +24,9 @@ import {
   NpcQuest,
   PlayerGift,
   PlayerVisitLog,
+  PlayerHorse,
+  ActiveHorseRide,
+  HorseBreedId,
 } from '../types/game';
 import {
   ANIMALS,
@@ -34,6 +37,8 @@ import {
   INITIAL_BUILDINGS,
   INITIAL_TREES,
   LEVEL_REQUIREMENTS,
+  MAX_LEVEL,
+  getXpRequiredForLevel,
   RECIPES,
   WEATHER_CONFIG,
 } from '../utils/constants';
@@ -44,6 +49,14 @@ import { vibrateLight, vibrateSuccess, vibrateLevelUp } from '../utils/haptics';
 import { CloudSavePayload } from '../services/cloudSync';
 import { DECORATIONS_CATALOG } from '../utils/decorationsData';
 import { INITIAL_NPC_QUESTS, generateDailyQuestsRefresh } from '../utils/questsData';
+import {
+  INITIAL_PLAYER_HORSES,
+  HORSE_BREEDS,
+  TACK_CATALOG,
+  RIDE_ROUTES,
+  HORSE_TREATS,
+  calculateHorseStats,
+} from '../utils/stablesData';
 import { createInitialJournalEntries, formatJournalDate } from '../utils/journalData';
 
 const STORAGE_KEY = 'SUNNY_FARM_DATA_V2';
@@ -122,19 +135,33 @@ export function useGameState() {
     apple: 3,
   });
 
-  // Farm Plots (12 plots total, 4 initial)
+  // Farm Plots (36 plots total, 4 initial)
   const [plots, setPlots] = useState<FarmPlot[]>(() => {
-    return Array.from({ length: 12 }, (_, i) => ({
-      id: i,
-      unlocked: i < 4,
-      unlockLevel: Math.floor(i / 2) + 1,
-      unlockCost: (i + 1) * 35,
-      cropId: null,
-      plantedAt: null,
-      watered: false,
-      fertilized: false,
-    }));
+    return Array.from({ length: 36 }, (_, i) => {
+      const unlockLevel =
+        i < 4 ? 1 : i < 12 ? Math.floor(i / 2) + 1 : i < 20 ? Math.floor(i / 2) + 1 : 11 + (i - 19) * 2;
+      return {
+        id: i,
+        unlocked: i < 4,
+        unlockLevel,
+        unlockCost: (i + 1) * 45,
+        cropId: null,
+        plantedAt: null,
+        watered: false,
+        fertilized: false,
+      };
+    });
   });
+
+  // Stables & Horses System
+  const [playerHorses, setPlayerHorses] = useState<PlayerHorse[]>(INITIAL_PLAYER_HORSES);
+  const [activeHorseRides, setActiveHorseRides] = useState<ActiveHorseRide[]>([]);
+  const [unlockedTackIds, setUnlockedTackIds] = useState<string[]>([
+    'pad_linen',
+    'bridle_leather',
+    'saddle_village',
+    'horseshoe_iron',
+  ]);
 
   // Animals
   const [animals, setAnimals] = useState<AnimalState[]>([
@@ -259,9 +286,34 @@ export function useGameState() {
         if (parsed.xp !== undefined) setXp(parsed.xp);
         if (parsed.barnCapacity !== undefined) setBarnCapacity(parsed.barnCapacity);
         if (parsed.inventory) setInventory(parsed.inventory);
-        if (parsed.plots) setPlots(parsed.plots);
+        if (parsed.plots) {
+          if (parsed.plots.length < 36) {
+            const existingPlots = [...parsed.plots];
+            for (let i = existingPlots.length; i < 36; i++) {
+              const unlockLevel =
+                i < 4 ? 1 : i < 12 ? Math.floor(i / 2) + 1 : i < 20 ? Math.floor(i / 2) + 1 : 11 + (i - 19) * 2;
+              existingPlots.push({
+                id: i,
+                unlocked: false,
+                unlockLevel,
+                unlockCost: (i + 1) * 45,
+                cropId: null,
+                plantedAt: null,
+                watered: false,
+                fertilized: false,
+              });
+            }
+            setPlots(existingPlots);
+          } else {
+            setPlots(parsed.plots);
+          }
+        }
         if (parsed.animals) setAnimals(parsed.animals);
-        if (parsed.buildings) setBuildings(parsed.buildings);
+        if (parsed.buildings) {
+          const existingBuildingIds = new Set(parsed.buildings.map((b: any) => b.id));
+          const newBuildings = INITIAL_BUILDINGS.filter((b) => !existingBuildingIds.has(b.id));
+          setBuildings([...parsed.buildings, ...newBuildings]);
+        }
         if (parsed.trees) setTrees(parsed.trees);
         if (parsed.orders && parsed.orders.length > 0) setOrders(parsed.orders);
         if (parsed.achievements) setAchievements(parsed.achievements);
@@ -271,6 +323,9 @@ export function useGameState() {
         if (parsed.lastSeasonalSurpriseDate) setLastSeasonalSurpriseDate(parsed.lastSeasonalSurpriseDate);
         if (parsed.purchasedDecorations) setPurchasedDecorations(parsed.purchasedDecorations);
         if (parsed.placedDecorations) setPlacedDecorations(parsed.placedDecorations);
+        if (parsed.playerHorses && parsed.playerHorses.length > 0) setPlayerHorses(parsed.playerHorses);
+        if (parsed.activeHorseRides) setActiveHorseRides(parsed.activeHorseRides);
+        if (parsed.unlockedTackIds && parsed.unlockedTackIds.length > 0) setUnlockedTackIds(parsed.unlockedTackIds);
         if (parsed.journalEntries && parsed.journalEntries.length > 0) setJournalEntries(parsed.journalEntries);
         if (parsed.npcQuests && parsed.npcQuests.length > 0) {
           // Normalize legacy pie objectives to accept strawberry_pie and all freshly baked pies
@@ -354,14 +409,17 @@ export function useGameState() {
         lastQuestsRefreshDate,
         playerGifts,
         playerVisitLogs,
+        playerHorses,
+        activeHorseRides,
+        unlockedTackIds,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
     } catch {
       // ignore
     }
-  }, [coins, gems, level, xp, lastDailyClaimDate, dailyStreak, barnCapacity, inventory, plots, animals, buildings, trees, orders, achievements, stats, neighbors, seasonMode, lastSeasonalSurpriseDate, purchasedDecorations, placedDecorations, journalEntries, npcQuests, lastQuestsRefreshDate, playerGifts, playerVisitLogs]);
+  }, [coins, gems, level, xp, lastDailyClaimDate, dailyStreak, barnCapacity, inventory, plots, animals, buildings, trees, orders, achievements, stats, neighbors, seasonMode, lastSeasonalSurpriseDate, purchasedDecorations, placedDecorations, journalEntries, npcQuests, lastQuestsRefreshDate, playerGifts, playerVisitLogs, playerHorses, activeHorseRides, unlockedTackIds]);
 
-// XP & Level-up system (Железный сброс в 0 через линейный IF)
+  // XP & Level-up system (Железный сброс в 0 через линейный IF)
 const addXp = useCallback((amount: number) => {
   setXp((prevXp) => {
     const nextLevelRequirement = LEVEL_REQUIREMENTS[level] || level * 1000;
@@ -415,9 +473,6 @@ const addXp = useCallback((amount: number) => {
     return newTotal;
   });
 }, [level, showFloating]); // <-- Обязательно добавляем level в зависимости, так как мы убрали сложный setLevel(prev => ...)
-
-
-
 
   // Main 1-second game tick loop
   useEffect(() => {
@@ -498,6 +553,19 @@ const addXp = useCallback((amount: number) => {
             return generateOrder();
           }
           return ord;
+        })
+      );
+
+      // Check active horse rides
+      setActiveHorseRides((prev) =>
+        prev.map((ride) => {
+          if (ride.completed) return ride;
+          if (now - ride.startedAt >= ride.durationMs) {
+            sound.playHarvest();
+            showFloating('Верховая прогулка завершена! 🐴 Нажмите забрать награды', 'text-amber-300');
+            return { ...ride, completed: true };
+          }
+          return ride;
         })
       );
     }, 1000);
@@ -848,6 +916,403 @@ const addXp = useCallback((amount: number) => {
       showFloating(`Куплено: ${cfg.emoji} ${cfg.name}! 🎉`, 'text-emerald-300');
     },
     [animals, coins, level, showFloating]
+  );
+
+  // ==================== STABLES & HORSES METHODS ====================
+
+  // Feed horse with treat
+  const feedHorse = useCallback(
+    (horseId: string, treatItemId: string) => {
+      const horse = playerHorses.find((h) => h.id === horseId);
+      if (!horse) return;
+
+      const treat = HORSE_TREATS.find((t) => t.itemId === treatItemId);
+      if (!treat) return;
+
+      const stock = inventory[treatItemId] || 0;
+      if (stock <= 0) {
+        showFloating(`Нет ${treat.emoji} ${treat.name} в амбаре!`, 'text-rose-400');
+        sound.playTap();
+        return;
+      }
+
+      setInventory((inv) => ({
+        ...inv,
+        [treatItemId]: Math.max(0, (inv[treatItemId] || 0) - 1),
+      }));
+
+      setPlayerHorses((prev) =>
+        prev.map((h) => {
+          if (h.id !== horseId) return h;
+          const newEnergy = Math.min(100, h.energy + treat.energyGain);
+          let newBondXp = h.bondXp + treat.bondGain;
+          let newBondLevel = h.bondLevel;
+
+          const neededXp = newBondLevel * 60;
+          if (newBondXp >= neededXp && newBondLevel < 10) {
+            newBondXp -= neededXp;
+            newBondLevel += 1;
+            sound.playLevelUp();
+            vibrateLevelUp();
+            confetti({ particleCount: 50, spread: 60 });
+            showFloating(`Уровень доверия вырос: ${newBondLevel}! 💖`, 'text-pink-300');
+          }
+
+          return {
+            ...h,
+            energy: newEnergy,
+            bondXp: newBondXp,
+            bondLevel: newBondLevel,
+            lastFedAt: Date.now(),
+          };
+        })
+      );
+
+      sound.playSuccess();
+      vibrateSuccess();
+      showFloating(`+${treat.energyGain} ⚡ Энергии, +${treat.bondGain} 💖 Дружбы!`, 'text-amber-300');
+    },
+    [inventory, playerHorses, showFloating]
+  );
+
+  // Groom horse (brush & wash)
+  const groomHorse = useCallback(
+    (horseId: string) => {
+      const horse = playerHorses.find((h) => h.id === horseId);
+      if (!horse) return;
+
+      setPlayerHorses((prev) =>
+        prev.map((h) => {
+          if (h.id !== horseId) return h;
+          const newEnergy = Math.min(100, h.energy + 15);
+          let newBondXp = h.bondXp + 20;
+          let newBondLevel = h.bondLevel;
+
+          const neededXp = newBondLevel * 60;
+          if (newBondXp >= neededXp && newBondLevel < 10) {
+            newBondXp -= neededXp;
+            newBondLevel += 1;
+            sound.playLevelUp();
+            vibrateLevelUp();
+            showFloating(`Уровень доверия вырос: ${newBondLevel}! 💖`, 'text-pink-300');
+          }
+
+          return {
+            ...h,
+            energy: newEnergy,
+            bondXp: newBondXp,
+            bondLevel: newBondLevel,
+            lastGroomedAt: Date.now(),
+          };
+        })
+      );
+
+      addXp(25);
+      sound.playSuccess();
+      vibrateLight();
+      showFloating(`Конь вычищен до блеска! ✨ +15 ⚡ +25 XP`, 'text-emerald-300');
+    },
+    [addXp, playerHorses, showFloating]
+  );
+
+  // Pet horse
+  const petHorse = useCallback(
+    (horseId: string) => {
+      setPlayerHorses((prev) =>
+        prev.map((h) => {
+          if (h.id !== horseId) return h;
+          let newBondXp = h.bondXp + 10;
+          let newBondLevel = h.bondLevel;
+          const neededXp = newBondLevel * 60;
+          if (newBondXp >= neededXp && newBondLevel < 10) {
+            newBondXp -= neededXp;
+            newBondLevel += 1;
+            sound.playLevelUp();
+            vibrateLevelUp();
+          }
+          return {
+            ...h,
+            bondXp: newBondXp,
+            bondLevel: newBondLevel,
+          };
+        })
+      );
+      sound.playTap();
+      vibrateLight();
+      showFloating('Лошадка ласково фыркает 💖 +10 доверия', 'text-pink-300');
+    },
+    [showFloating]
+  );
+
+  // Rename horse
+  const renameHorse = useCallback(
+    (horseId: string, newName: string) => {
+      if (!newName.trim()) return;
+      setPlayerHorses((prev) =>
+        prev.map((h) => (h.id === horseId ? { ...h, customName: newName.trim() } : h))
+      );
+      showFloating(`Кличка обновлена: ${newName.trim()} 🐴`, 'text-amber-200');
+    },
+    [showFloating]
+  );
+
+  // Equip tack onto horse
+  const equipTack = useCallback(
+    (horseId: string, tackId: string) => {
+      const tack = TACK_CATALOG.find((t) => t.id === tackId);
+      if (!tack) return;
+
+      setPlayerHorses((prev) =>
+        prev.map((h) => {
+          if (h.id !== horseId) return h;
+          const currentEq = { ...h.equippedTack };
+          if (currentEq[tack.category] === tackId) {
+            delete currentEq[tack.category];
+            showFloating(`Снято: ${tack.name}`, 'text-stone-300');
+          } else {
+            currentEq[tack.category] = tackId;
+            sound.playSuccess();
+            showFloating(`Надето: ${tack.name} ✨`, 'text-amber-300');
+          }
+          return { ...h, equippedTack: currentEq };
+        })
+      );
+    },
+    [showFloating]
+  );
+
+  // Buy tack item from tack shop
+  const buyTack = useCallback(
+    (tackId: string) => {
+      const tack = TACK_CATALOG.find((t) => t.id === tackId);
+      if (!tack) return;
+
+      if (level < tack.minLevel) {
+        showFloating(`Требуется уровень ${tack.minLevel}!`, 'text-rose-400');
+        return;
+      }
+
+      if (tack.costCoins && coins < tack.costCoins) {
+        showFloating(`Нужно ${tack.costCoins} 🪙 монет!`, 'text-rose-400');
+        return;
+      }
+      if (tack.costGems && gems < tack.costGems) {
+        showFloating(`Нужно ${tack.costGems} 💎 кристаллов!`, 'text-rose-400');
+        return;
+      }
+
+      if (tack.costCoins) setCoins((c) => c - (tack.costCoins ?? 0));
+      if (tack.costGems) setGems((g) => g - (tack.costGems ?? 0));
+
+      setUnlockedTackIds((prev) => (prev.includes(tackId) ? prev : [...prev, tackId]));
+      sound.playCoins();
+      vibrateSuccess();
+      showFloating(`Куплено: ${tack.emoji} ${tack.name}! 🎉`, 'text-amber-300');
+    },
+    [coins, gems, level, showFloating]
+  );
+
+  // Buy new horse breed
+  const buyHorseBreed = useCallback(
+    (breedId: HorseBreedId, customName?: string) => {
+      const breed = HORSE_BREEDS[breedId];
+      if (!breed) return;
+
+      if (level < breed.minLevel) {
+        showFloating(`Требуется уровень ${breed.minLevel}!`, 'text-rose-400');
+        return;
+      }
+
+      if (breed.costCoins && coins < breed.costCoins) {
+        showFloating(`Нужно ${breed.costCoins} 🪙 монет!`, 'text-rose-400');
+        return;
+      }
+      if (breed.costGems && gems < breed.costGems) {
+        showFloating(`Нужно ${breed.costGems} 💎 кристаллов!`, 'text-rose-400');
+        return;
+      }
+
+      if (breed.costCoins) setCoins((c) => c - (breed.costCoins ?? 0));
+      if (breed.costGems) setGems((g) => g - (breed.costGems ?? 0));
+
+      const newHorse: PlayerHorse = {
+        id: `horse_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        breedId,
+        customName: customName?.trim() || breed.name,
+        bondLevel: 1,
+        bondXp: 0,
+        energy: 100,
+        maxEnergy: 100,
+        lastGroomedAt: null,
+        lastFedAt: null,
+        equippedTack: {},
+        totalRidesCompleted: 0,
+        favoriteTreatItemId: 'apple',
+      };
+
+      setPlayerHorses((prev) => [...prev, newHorse]);
+      sound.playLevelUp();
+      vibrateLevelUp();
+      confetti({ particleCount: 70, spread: 70 });
+      showFloating(`Новый скакун в конюшне: ${newHorse.customName}! 🐴✨`, 'text-amber-300');
+    },
+    [coins, gems, level, showFloating]
+  );
+
+  // Start trail ride
+  const startHorseRide = useCallback(
+    (horseId: string, routeId: string) => {
+      const horse = playerHorses.find((h) => h.id === horseId);
+      if (!horse) return;
+
+      const isAlreadyRiding = activeHorseRides.some((r) => r.horseId === horseId && !r.collected);
+      if (isAlreadyRiding) {
+        showFloating('Этот конь уже на верховой прогулке!', 'text-amber-400');
+        return;
+      }
+
+      const route = RIDE_ROUTES.find((r) => r.id === routeId);
+      if (!route) return;
+
+      if (level < route.minPlayerLevel) {
+        showFloating(`Требуется уровень фермера ${route.minPlayerLevel}!`, 'text-rose-400');
+        return;
+      }
+
+      if (horse.bondLevel < route.minBondLevel) {
+        showFloating(`Требуется доверие коня ур. ${route.minBondLevel}!`, 'text-rose-400');
+        return;
+      }
+
+      const horseStats = calculateHorseStats(horse);
+      const actualEnergyCost = Math.max(5, Math.round(route.energyCost * (1 - horseStats.energySavePercentBonus / 100)));
+
+      if (horse.energy < actualEnergyCost) {
+        showFloating(`Мало энергии! Нужно ${actualEnergyCost} ⚡ (У лошади: ${horse.energy} ⚡)`, 'text-rose-400');
+        return;
+      }
+
+      setPlayerHorses((prev) =>
+        prev.map((h) => (h.id === horseId ? { ...h, energy: h.energy - actualEnergyCost } : h))
+      );
+
+      const speedMultiplier = 1 + horseStats.speedPercentBonus / 100;
+      const actualDurationMs = Math.round((route.durationSeconds * 1000) / speedMultiplier);
+
+      const newRide: ActiveHorseRide = {
+        id: `ride_${Date.now()}`,
+        horseId,
+        routeId,
+        startedAt: Date.now(),
+        durationMs: actualDurationMs,
+        completed: false,
+      };
+
+      setActiveHorseRides((prev) => [...prev, newRide]);
+      sound.playCoins();
+      vibrateLight();
+      showFloating(`Конь отправился в поход: ${route.name}! 🐎`, 'text-emerald-300');
+    },
+    [activeHorseRides, level, playerHorses, showFloating]
+  );
+
+  // Speed up trail ride with gems
+  const speedUpHorseRide = useCallback(
+    (rideId: string, gemCost: number) => {
+      if (gems < gemCost) {
+        showFloating(`Нужно ${gemCost} 💎 кристаллов!`, 'text-rose-400');
+        return;
+      }
+      setGems((g) => g - gemCost);
+      setActiveHorseRides((prev) =>
+        prev.map((r) => (r.id === rideId ? { ...r, completed: true, startedAt: Date.now() - r.durationMs } : r))
+      );
+      sound.playSuccess();
+      vibrateSuccess();
+      showFloating('Скакун мгновенно вернулся с прогулки! ⚡', 'text-amber-300');
+    },
+    [gems, showFloating]
+  );
+
+  // Collect trail ride rewards
+  const collectHorseRideReward = useCallback(
+    (rideId: string) => {
+      const ride = activeHorseRides.find((r) => r.id === rideId);
+      if (!ride) return null;
+
+      const route = RIDE_ROUTES.find((r) => r.id === ride.routeId);
+      const horse = playerHorses.find((h) => h.id === ride.horseId);
+      if (!route || !horse) return null;
+
+      const horseStats = calculateHorseStats(horse);
+      const rewardMultiplier = 1 + horseStats.rewardPercentBonus / 100;
+
+      const rawCoins = Math.floor(Math.random() * (route.rewardMaxCoins - route.rewardMinCoins + 1)) + route.rewardMinCoins;
+      const earnedCoins = Math.round(rawCoins * rewardMultiplier);
+      const earnedXp = Math.round(route.rewardXp * (horse.breedId === 'arabian' ? 1.35 : 1.0));
+
+      const luckMultiplier = 1 + horseStats.luckPercentBonus / 100;
+      let earnedGems = 0;
+      if (Math.random() < Math.min(1, route.rewardGemsChance * luckMultiplier)) {
+        earnedGems = route.rewardGemsAmount || 1;
+      }
+
+      const droppedItems: { itemId: string; name: string; emoji: string; count: number }[] = [];
+      const newInventory = { ...inventory };
+
+      for (const drop of route.bonusDrops) {
+        const effectiveChance = Math.min(1, drop.chance * (1 + horseStats.luckPercentBonus / 100));
+        if (Math.random() < effectiveChance) {
+          const count = horse.breedId === 'shire' ? drop.count * 2 : drop.count;
+          newInventory[drop.itemId] = (newInventory[drop.itemId] || 0) + count;
+          droppedItems.push({
+            itemId: drop.itemId,
+            name: drop.name,
+            emoji: drop.emoji,
+            count,
+          });
+        }
+      }
+
+      setCoins((c) => c + earnedCoins);
+      if (earnedGems > 0) setGems((g) => g + earnedGems);
+      setInventory(newInventory);
+      addXp(earnedXp);
+
+      setPlayerHorses((prev) =>
+        prev.map((h) => {
+          if (h.id !== horse.id) return h;
+          let newBondXp = h.bondXp + 25;
+          let newBondLevel = h.bondLevel;
+          const neededXp = newBondLevel * 60;
+          if (newBondXp >= neededXp && newBondLevel < 10) {
+            newBondXp -= neededXp;
+            newBondLevel += 1;
+          }
+          return {
+            ...h,
+            bondXp: newBondXp,
+            bondLevel: newBondLevel,
+            totalRidesCompleted: h.totalRidesCompleted + 1,
+          };
+        })
+      );
+
+      setActiveHorseRides((prev) => prev.filter((r) => r.id !== rideId));
+      sound.playHarvest();
+      vibrateSuccess();
+      confetti({ particleCount: 60, spread: 60 });
+
+      return {
+        coins: earnedCoins,
+        xp: earnedXp,
+        gems: earnedGems,
+        items: droppedItems,
+        routeName: route.name,
+        horseName: horse.customName,
+      };
+    },
+    [activeHorseRides, addXp, inventory, playerHorses]
   );
 
   // 10. Start Crafting Recipe in Building
@@ -2243,5 +2708,19 @@ const addXp = useCallback((amount: number) => {
     applyCloudSave,
     getCloudSavePayload,
     resetGame,
+    // Stables & Horses
+    playerHorses,
+    activeHorseRides,
+    unlockedTackIds,
+    feedHorse,
+    groomHorse,
+    petHorse,
+    renameHorse,
+    equipTack,
+    buyTack,
+    buyHorseBreed,
+    startHorseRide,
+    speedUpHorseRide,
+    collectHorseRideReward,
   };
 }

@@ -12,6 +12,7 @@ interface AnimalsViewProps {
   onPetAnimal: (animalId: string) => void;
   onCollectProduct: (animalId: string) => void;
   onBuyAnimal: (type: AnimalType) => void;
+  onOpenStables?: () => void;
 }
 
 export const AnimalsView: React.FC<AnimalsViewProps> = ({
@@ -23,6 +24,7 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
   onPetAnimal,
   onCollectProduct,
   onBuyAnimal,
+  onOpenStables,
 }) => {
   const now = Date.now();
 
@@ -50,6 +52,29 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
           Кормите любимцев и собирайте ценные продукты!
         </span>
       </div>
+
+      {/* Stables Shortcut Banner */}
+      {onOpenStables && (
+        <button
+          onClick={onOpenStables}
+          className="mb-2 p-2.5 rounded-2xl bg-gradient-to-r from-amber-950 via-stone-900 to-emerald-950 border border-amber-500/60 flex items-center justify-between text-left hover:border-amber-400 transition-all cursor-pointer active:scale-98 shadow-md"
+        >
+          <div className="flex items-center gap-2.5">
+            <span className="text-2xl">🐴</span>
+            <div>
+              <div className="text-xs font-bold text-amber-200">
+                Конюшня «Серебряная Подкова»
+              </div>
+              <div className="text-[10px] text-emerald-300">
+                Породы лошадей, верховые прогулки, уход и конная амуниция
+              </div>
+            </div>
+          </div>
+          <span className="text-xs font-bold text-amber-300 bg-amber-950/80 px-2 py-1 rounded-xl border border-amber-600/50">
+            В конюшню →
+          </span>
+        </button>
+      )}
 
       <div className="flex flex-col gap-3">
         {animalGroups.map((type) => {

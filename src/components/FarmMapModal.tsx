@@ -72,6 +72,18 @@ export const FarmMapModal: React.FC<FarmMapModalProps> = ({
       status: readyAnimalsCount > 0 ? 'Продукция готова!' : 'Животные отдыхают',
     },
     {
+      id: 'stables' as TabType,
+      name: 'Императорская Конюшня & Манеж',
+      subtitle: 'Породы скакунов, экипировка, уход и верховые прогулки',
+      emoji: '🐴',
+      badge: 'Скакуны & Прогулки',
+      badgeColor: 'bg-amber-800/80 text-amber-200',
+      gradient: 'from-amber-950/60 via-stone-900/80 to-emerald-950/60',
+      border: 'border-amber-500/60',
+      coords: 'Северо-западный манеж',
+      status: 'Скакуны готовы к выезду',
+    },
+    {
       id: 'buildings' as TabType,
       name: 'Ремесленный Квартал & Заводы',
       subtitle: 'Ветряная мельница, пекарня, сыроварня, ткацкий станок',
