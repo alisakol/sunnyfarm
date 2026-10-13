@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '../services/firebase';
+import { onAuthStateChanged, User, EmailAuthProvider, linkWithCredential } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../services/firebase';
 import {
   CloudSavePayload,
   loginWithGooglePopup,
@@ -9,7 +10,6 @@ import {
   loadFarmFromFirestore,
   loginWithEmail,
   registerWithEmail,
-  linkEmailPassword,
 } from '../services/cloudSync';
 
 interface AuthContextType {
@@ -75,14 +75,39 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }
   }, []);
 
+  // --- Реализация привязки почты прямо в контексте ---
   const linkEmailAction = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       setSyncError(null);
-      const u = await linkEmailPassword(email, password);
-      setUser(u);
-      return u;
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        throw new Error('Нет активного пользователя для привязки');
+      }
+
+      const credential = EmailAuthProvider.credential(email, password);
+      const result = await linkWithCredential(currentUser, credential);
+
+      if (result.user) {
+        const userRef = doc(db, 'users', result.user.uid);
+        try {
+          await setDoc(
+            userRef,
+            {
+              id: result.user.uid,
+              email: result.user.email || email,
+              lastLoginAt: new Date().toISOString(),
+            },
+            { merge: true }
+          );
+        } catch (err) {
+          console.warn('Could not update user profile in firestore:', err);
+        }
+        setUser(result.user);
+      }
+      return result.user;
     } catch (err: any) {
-      setSyncError(err?.message || 'Ошибка привязки почты');
+      const msg = err?.message || 'Ошибка привязки почты';
+      setSyncError(msg);
       throw err;
     }
   }, []);
