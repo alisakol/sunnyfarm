@@ -7,8 +7,8 @@ import {
   logoutUser,
   saveFarmToFirestore,
   loadFarmFromFirestore,
-  loginEmail,
-  registerEmail,
+  loginWithEmail,     // ✅ Верное имя
+  registerWithEmail,  // ✅ Верное имя
 } from '../services/cloudSync';
 
 interface AuthContextType {
