@@ -16,7 +16,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onApplyCloudSave,
   onShowNotification,
 }) => {
-  // Исправлено: приведение типа as any применено правильно ко всему вызову hook
   const { 
     user, 
     isLoadingAuth, 
@@ -26,6 +25,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     login, 
     loginEmail, 
     registerEmail, 
+    linkEmail, 
     logout, 
     saveToCloud, 
     loadFromCloud 
@@ -34,11 +34,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   
-  // Состояния для Email/Password формы
+  // Состояния для Email/Password формы входа/регистрации
   const [showEmailForm, setShowEmailForm] = useState<boolean>(false);
   const [isSignUp, setIsSignUp] = useState<boolean>(false);
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
+
+  // Состояния для формы привязки почты (когда пользователь уже вошел, например, через Google)
+  const [showLinkForm, setShowLinkForm] = useState<boolean>(false);
+  const [linkEmailInput, setLinkEmailInput] = useState<string>('');
+  const [linkPasswordInput, setLinkPasswordInput] = useState<string>('');
 
   // Обработка успешного входа/регистрации
   const handlePostAuthSuccess = async (successMessage: string) => {
@@ -108,6 +113,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     }
   };
 
+  const handleLinkSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!linkEmailInput || !linkPasswordInput) {
+      setLocalFeedback('Заполните все поля для привязки');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setLocalFeedback(null);
+
+      if (typeof linkEmail !== 'function') {
+        throw new Error('linkEmail is not implemented in AuthContext');
+      }
+
+      await linkEmail(linkEmailInput, linkPasswordInput);
+      setLocalFeedback('Почта и пароль успешно привязаны к аккаунту!');
+      setShowLinkForm(false);
+      onShowNotification?.('Аккаунт успешно связан!', 'text-emerald-300');
+    } catch (err: any) {
+      console.error('Email linking error:', err);
+      if (err.code === 'auth/email-already-in-use') {
+        setLocalFeedback('Этот email уже используется в другом аккаунте.');
+      } else {
+        setLocalFeedback(err.message || 'Ошибка привязки почты.');
+      }
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const handleManualSave = async () => {
     setIsProcessing(true);
     setLocalFeedback(null);
@@ -142,6 +178,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setLocalFeedback('Вы вышли из аккаунта. Локальный прогресс сохранен.');
     onShowNotification?.('Вы вышли из аккаунта', 'text-stone-300');
     setShowEmailForm(false);
+    setShowLinkForm(false);
   };
 
   const formattedSyncTime = lastSyncedAt
@@ -353,6 +390,53 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </span>
               </div>
             </div>
+
+            {/* Account Linking Section (For Google users to add password) */}
+            {!showLinkForm ? (
+              <button
+                onClick={() => setShowLinkForm(true)}
+                className="w-full py-2 px-3 rounded-xl bg-stone-800/80 hover:bg-stone-800 border border-stone-700 text-stone-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <Mail className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Привязать почту и пароль</span>
+              </button>
+            ) : (
+              <form onSubmit={handleLinkSubmit} className="bg-stone-900/90 border border-stone-700 rounded-2xl p-3 flex flex-col gap-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-emerald-300">Привязка почты к аккаунту</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowLinkForm(false)}
+                    className="text-stone-400 hover:text-white text-xs cursor-pointer"
+                  >
+                    Отмена
+                  </button>
+                </div>
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={linkEmailInput}
+                  onChange={(e) => setLinkEmailInput(e.target.value)}
+                  required
+                  className="w-full bg-stone-950 border border-stone-700 rounded-xl px-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500"
+                />
+                <input
+                  type="password"
+                  placeholder="Пароль для входа"
+                  value={linkPasswordInput}
+                  onChange={(e) => setLinkPasswordInput(e.target.value)}
+                  required
+                  className="w-full bg-stone-950 border border-stone-700 rounded-xl px-3 py-2 text-xs text-white placeholder-stone-500 focus:outline-none focus:border-emerald-500"
+                />
+                <button
+                  type="submit"
+                  disabled={isProcessing}
+                  className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {isProcessing ? 'Привязка...' : 'Подтвердить привязку'}
+                </button>
+              </form>
+            )}
 
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-2">

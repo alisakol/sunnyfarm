@@ -7,8 +7,9 @@ import {
   logoutUser,
   saveFarmToFirestore,
   loadFarmFromFirestore,
-  loginWithEmail,       // Добавлен импорт функции входа
-  registerWithEmail,    // Добавлен импорт функции регистрации
+  loginEmail,
+  registerEmail,
+  linkEmailPassword, // <-- Добавлен импорт функции привязки
 } from '../services/cloudSync';
 
 interface AuthContextType {
@@ -18,8 +19,9 @@ interface AuthContextType {
   lastSyncedAt: Date | null;
   syncError: string | null;
   login: () => Promise<User | null>;
-  loginEmail: (email: string, password: string) => Promise<User | null>;       // Метод входа по Email
-  registerEmail: (email: string, password: string) => Promise<User | null>;    // Метод регистрации по Email
+  loginEmail: (email: string, password: string) => Promise<User | null>;
+  registerEmail: (email: string, password: string) => Promise<User | null>;
+  linkEmail: (email: string, password: string) => Promise<User | null>; // <-- Добавлен метод в тип
   logout: () => Promise<void>;
   saveToCloud: (state: CloudSavePayload) => Promise<boolean>;
   loadFromCloud: () => Promise<CloudSavePayload | null>;
@@ -56,10 +58,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // --- Реализация входа по Email ---
-  const loginEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
+  const loginEmailAction = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       setSyncError(null);
-      const u = await loginWithEmail(email, password);
+      const u = await loginEmail(email, password);
       return u;
     } catch (err: any) {
       const msg = err?.message || 'Неверный логин или пароль';
@@ -69,13 +71,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   // --- Реализация регистрации по Email ---
-  const registerEmail = useCallback(async (email: string, password: string): Promise<User | null> => {
+  const registerEmailAction = useCallback(async (email: string, password: string): Promise<User | null> => {
     try {
       setSyncError(null);
-      const u = await registerWithEmail(email, password);
+      const u = await registerEmail(email, password);
       return u;
     } catch (err: any) {
       const msg = err?.message || 'Ошибка при создании аккаунта';
+      setSyncError(msg);
+      throw err;
+    }
+  }, []);
+
+  // --- Реализация связывания почты с текущим аккаунтом ---
+  const linkEmailAction = useCallback(async (email: string, password: string): Promise<User | null> => {
+    try {
+      setSyncError(null);
+      const u = await linkEmailPassword(email, password);
+      setUser(u);
+      return u;
+    } catch (err: any) {
+      const msg = err?.message || 'Ошибка привязки почты';
       setSyncError(msg);
       throw err;
     }
@@ -141,8 +157,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         lastSyncedAt,
         syncError,
         login,
-        loginEmail,       // Передано в провайдер
-        registerEmail,    // Передано в провайдер
+        loginEmail: loginEmailAction,
+        registerEmail: registerEmailAction,
+        linkEmail: linkEmailAction, // <-- Передано в провайдер
         logout,
         saveToCloud,
         loadFromCloud,

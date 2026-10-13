@@ -4,7 +4,9 @@ import {
   signOut, 
   User, 
   createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword 
+  signInWithEmailAndPassword,
+  EmailAuthProvider,
+  linkWithCredential
 } from 'firebase/auth';
 import { auth, db, googleProvider, handleFirestoreError, OperationType } from './firebase';
 
@@ -36,7 +38,7 @@ export interface CloudSavePayload {
   playerVisitLogs?: any[];
 }
 
-// --- Новая функция: Регистрация по почте и паролю ---
+// --- Регистрация по почте и паролю ---
 export async function registerWithEmail(email: string, password: string): Promise<User | null> {
   try {
     const result = await createUserWithEmailAndPassword(auth, email, password);
@@ -48,7 +50,7 @@ export async function registerWithEmail(email: string, password: string): Promis
           {
             id: result.user.uid,
             email: result.user.email || email,
-            displayName: email.split('@')[0] || 'Фермер', // Берём часть до @ в качестве никнейма
+            displayName: email.split('@')[0] || 'Фермер', // Часть до @ в качестве никнейма
             photoURL: '',
             lastLoginAt: new Date().toISOString(),
           },
@@ -65,7 +67,7 @@ export async function registerWithEmail(email: string, password: string): Promis
   }
 }
 
-// --- Новая функция: Вход по почте и паролю ---
+// --- Вход по почте и паролю ---
 export async function loginWithEmail(email: string, password: string): Promise<User | null> {
   try {
     const result = await signInWithEmailAndPassword(auth, email, password);
@@ -76,7 +78,44 @@ export async function loginWithEmail(email: string, password: string): Promise<U
   }
 }
 
-// --- Вход через Google (сохранён без изменений) ---
+// --- Связывание текущего аккаунта с почтой и паролем ---
+export async function linkEmailPassword(email: string, password: string): Promise<User | null> {
+  try {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      throw new Error('Нет активного пользователя для привязки');
+    }
+
+    // Создаем учетные данные провайдера Email/Password
+    const credential = EmailAuthProvider.credential(email, password);
+    
+    // Привязываем почту/пароль к существующей учетной записи
+    const result = await linkWithCredential(currentUser, credential);
+    
+    if (result.user) {
+      const userRef = doc(db, 'users', result.user.uid);
+      try {
+        await setDoc(
+          userRef,
+          {
+            id: result.user.uid,
+            email: result.user.email || email,
+            lastLoginAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      } catch (err) {
+        console.warn('Could not update user profile in firestore:', err);
+      }
+    }
+    return result.user;
+  } catch (error) {
+    console.error('Email linking failed:', error);
+    throw error;
+  }
+}
+
+// --- Вход через Google ---
 export async function loginWithGooglePopup(): Promise<User | null> {
   try {
     const result = await signInWithPopup(auth, googleProvider);
