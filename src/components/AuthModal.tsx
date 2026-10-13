@@ -18,18 +18,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   // Убедитесь, что ваш AuthContext возвращает loginWithEmail и registerWithEmail (или аналогичные функции)
   const { 
-    user, 
-    isLoadingAuth, 
-    isSyncing, 
-    lastSyncedAt, 
-    syncError, 
-    login, 
-    loginWithEmail, 
-    registerWithEmail, 
-    logout, 
-    saveToCloud, 
-    loadFromCloud 
-  } = useAuth() as any;
+  user, 
+  isLoadingAuth, 
+  isSyncing, 
+  lastSyncedAt, 
+  syncError, 
+  login, 
+  loginEmail,      // <-- исправили имя
+  registerEmail,   // <-- исправили имя
+  logout, 
+  saveToCloud, 
+  loadFromCloud 
+} = useAuth(); as any;
 
   const [localFeedback, setLocalFeedback] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
@@ -88,16 +88,49 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
       let u;
       if (isSignUp) {
-        if (typeof registerWithEmail !== 'function') {
-          throw new Error('registerWithEmail is not implemented in AuthContext');
+        if (typeof registerEmail !== 'function') {
+          throw new Error('registerEmail is not implemented in AuthContext');
         }
-        u = await registerWithEmail(email, password);
+        u = await registerEmail(email, password);
         await handlePostAuthSuccess('Аккаунт успешно создан!');
       } else {
-        if (typeof loginWithEmail !== 'function') {
-          throw new Error('loginWithEmail is not implemented in AuthContext');
+        if (typeof loginEmail !== 'function') {
+          throw new Error('loginEmail is not implemented in AuthContext');
         }
-        u = await loginWithEmail(email, password);
+        u = await loginEmail(email, password);
+        await handlePostAuthSuccess('Вы успешно вошли в аккаунт!');
+      }
+    } catch (err: any) {
+      console.error('Email auth error:', err);
+      setLocalFeedback(err.message || 'Ошибка авторизации. Проверьте данные.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+  
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      setLocalFeedback('Заполните все поля');
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      setLocalFeedback(null);
+
+      let u;
+      if (isSignUp) {
+        if (typeof registerEmail !== 'function') {
+          throw new Error('registerEmail is not implemented in AuthContext');
+        }
+        u = await registerEmail(email, password);
+        await handlePostAuthSuccess('Аккаунт успешно создан!');
+      } else {
+        if (typeof loginEmail !== 'function') {
+          throw new Error('loginEmail is not implemented in AuthContext');
+        }
+        u = await loginEmail(email, password);
         await handlePostAuthSuccess('Вы успешно вошли в аккаунт!');
       }
     } catch (err: any) {
