@@ -800,7 +800,7 @@ export const RECIPES: Recipe[] = [
     id: 'peach_jam',
     name: 'Персиковый Конфитюр',
     emoji: '🍑',
-    buildingId: 'bakery',
+    buildingId: 'jam_maker',
     craftTime: 36,
     ingredients: [
       { itemId: 'peach', count: 2 },
@@ -811,14 +811,14 @@ export const RECIPES: Recipe[] = [
     sellPrice: 165,
     xp: 90,
     minLevel: 3,
-    category: 'baking',
+    category: 'preserves',
     description: 'Густое золотистое варенье из сладких южных персиков и пасечного мёда.',
   },
   {
     id: 'winter_glaze',
     name: 'Морозный Морс',
-    emoji: '🧃',
-    buildingId: 'bakery',
+    emoji: '🧃'
+    buildingId: 'juice_press',
     craftTime: 28,
     ingredients: [
       { itemId: 'winterberry', count: 2 },
@@ -829,7 +829,7 @@ export const RECIPES: Recipe[] = [
     sellPrice: 150,
     xp: 80,
     minLevel: 3,
-    category: 'baking',
+    category: 'drinks',
     description: 'Бодрящий целебный морс из морозных зимних ягод с мёдом.',
   },
   // High Level Master Crafts (Уровни 11 - 20)
@@ -837,7 +837,7 @@ export const RECIPES: Recipe[] = [
     id: 'royal_honey_cake',
     name: 'Королевский Медовик',
     emoji: '🎂',
-    buildingId: 'bakery',
+    buildingId: 'confectionery',
     craftTime: 48,
     ingredients: [
       { itemId: 'flour', count: 2 },
@@ -850,7 +850,7 @@ export const RECIPES: Recipe[] = [
     sellPrice: 280,
     xp: 140,
     minLevel: 11,
-    category: 'baking',
+    category: 'sweets',
     description: 'Многослойный королевский торт на пасечном меду с лесным фундуком и взбитыми сливками.',
   },
   {
