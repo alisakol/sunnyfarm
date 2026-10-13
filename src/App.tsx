@@ -916,6 +916,8 @@ export default function App() {
         onClose={() => setIsRecipeBookOpen(false)}
         level={level}
         inventory={inventory}
+        buildings={buildings}
+        onStartCrafting={startCrafting}
         onGoToWorkshop={(buildingId) => {
           setActiveTab('buildings');
           setIsRecipeBookOpen(false);

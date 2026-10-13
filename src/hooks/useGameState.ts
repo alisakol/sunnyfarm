@@ -230,10 +230,18 @@ export function useGameState() {
 
     // Pick 1-2 items appropriate for current level
     const candidates = ['wheat', 'carrot', 'egg', 'apple'];
-    if (level >= 2) candidates.push('corn', 'flour', 'bread');
-    if (level >= 3) candidates.push('strawberry', 'milk', 'butter');
-    if (level >= 4) candidates.push('pumpkin', 'wool', 'cheese');
-    if (level >= 5) candidates.push('sunflower', 'honey', 'cookies');
+    if (level >= 2) candidates.push('corn', 'flour', 'bread', 'cornmeal');
+    if (level >= 3) candidates.push('strawberry', 'milk', 'butter', 'carrot_cake', 'powdered_sugar');
+    if (level >= 4) candidates.push('pumpkin', 'wool', 'cheese', 'sweater', 'cherry_muffin', 'oat_flakes');
+    if (level >= 5) candidates.push('sunflower', 'honey', 'cookies', 'rustic_pizza', 'fresh_cider');
+    if (level >= 6) candidates.push('strawberry_jam', 'cheese_baguette', 'berry_ice_cream', 'apple_cinnamon_jam');
+    if (level >= 7) candidates.push('grape', 'lingonberry_jam', 'cherry_confiture', 'peach_shake', 'manor_carpet');
+    if (level >= 8) candidates.push('eggplant', 'grape_jelly', 'berry_lemonade', 'eggplant_quiche');
+    if (level >= 9) candidates.push('artichoke', 'watermelon_juice', 'grape_juice', 'peperonata_sauce');
+    if (level >= 10) candidates.push('pineapple', 'pineapple_smoothie', 'artichoke_tart');
+    if (level >= 12) candidates.push('golden_wheat', 'golden_flour', 'truffle_cheese', 'pineapple_jam');
+    if (level >= 14) candidates.push('tsar_loaf', 'royal_brocade', 'hazelnut_truffle', 'grape_praline');
+    if (level >= 16) candidates.push('truffle_brie', 'royal_pavlova', 'truffle_praline');
 
     const numItems = Math.random() > 0.5 ? 2 : 1;
     const requirements: { itemId: string; count: number }[] = [];
@@ -253,12 +261,16 @@ export function useGameState() {
     let rewardXp = 0;
     requirements.forEach((req) => {
       const crop = CROPS[req.itemId];
+      const rec = RECIPES.find((r) => r.outputItemId === req.itemId);
       if (crop) {
         rewardCoins += crop.sellPrice * req.count * 1.4;
         rewardXp += crop.xp * req.count * 1.5;
+      } else if (rec) {
+        rewardCoins += rec.sellPrice * req.count * 1.4;
+        rewardXp += rec.xp * req.count * 1.5;
       } else {
-        rewardCoins += 25 * req.count;
-        rewardXp += 20 * req.count;
+        rewardCoins += 35 * req.count;
+        rewardXp += 25 * req.count;
       }
     });
 

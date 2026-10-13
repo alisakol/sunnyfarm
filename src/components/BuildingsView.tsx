@@ -1,7 +1,7 @@
 import React from 'react';
 import { Lock, Sparkles, Clock, Check, BookOpen } from 'lucide-react';
 import { BuildingId, BuildingState } from '../types/game';
-import { RECIPES } from '../utils/constants';
+import { RECIPES, CROPS, ANIMALS, INITIAL_TREES } from '../utils/constants';
 
 interface BuildingsViewProps {
   buildings: BuildingState[];
@@ -226,22 +226,50 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                           </div>
 
                           {/* Ingredients list */}
-                          <div className="flex flex-wrap items-center gap-1 mt-0.5 text-[10px]">
-                            {ingredientsCheck.map((ing, i) => (
-                              <span
-                                key={i}
-                                className={`flex items-center gap-0.5 px-1 py-0.2 rounded ${
-                                  ing.ok
-                                    ? 'bg-emerald-900/50 text-emerald-200'
-                                    : 'bg-rose-950/70 text-rose-300'
-                                }`}
-                              >
-                                {ing.ok && <Check className="w-2.5 h-2.5 text-emerald-400" />}
-                                <span>{ing.count} шт.</span>
-                                <span>({ing.have})</span>
-                              </span>
-                            ))}
-                            <span className="text-emerald-400/80">· {recipe.craftTime}с</span>
+                          <div className="flex flex-wrap items-center gap-1 mt-1 text-[10px]">
+                            {ingredientsCheck.map((ing, i) => {
+                              let ingLabel = ing.itemId;
+                              let ingEmoji = '📦';
+                              if (CROPS[ing.itemId]) {
+                                ingLabel = CROPS[ing.itemId].name;
+                                ingEmoji = CROPS[ing.itemId].emoji;
+                              } else if (ing.itemId === 'apple') {
+                                ingLabel = 'Яблоки';
+                                ingEmoji = '🍎';
+                              } else if (ing.itemId === 'cherry') {
+                                ingLabel = 'Вишня';
+                                ingEmoji = '🍒';
+                              } else {
+                                const anim = Object.values(ANIMALS).find((a) => a.produceItemId === ing.itemId);
+                                if (anim) {
+                                  ingLabel = anim.produceName;
+                                  ingEmoji = anim.produceEmoji;
+                                } else {
+                                  const r = RECIPES.find((rec) => rec.outputItemId === ing.itemId);
+                                  if (r) {
+                                    ingLabel = r.name;
+                                    ingEmoji = r.emoji;
+                                  }
+                                }
+                              }
+
+                              return (
+                                <span
+                                  key={i}
+                                  className={`flex items-center gap-1 px-1.5 py-0.5 rounded-lg ${
+                                    ing.ok
+                                      ? 'bg-emerald-900/60 text-emerald-200 border border-emerald-700/50'
+                                      : 'bg-rose-950/70 text-rose-300 border border-rose-800/60'
+                                  }`}
+                                  title={`${ingLabel}: в наличии ${ing.have} из ${ing.count}`}
+                                >
+                                  <span>{ingEmoji}</span>
+                                  <span className="font-medium truncate max-w-[90px]">{ingLabel}</span>
+                                  <span className="font-mono font-bold">({ing.have}/{ing.count})</span>
+                                </span>
+                              );
+                            })}
+                            <span className="text-emerald-300/80 font-mono text-[9px] ml-0.5">· {recipe.craftTime}с</span>
                           </div>
                         </div>
                       </div>
