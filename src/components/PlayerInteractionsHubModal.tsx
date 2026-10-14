@@ -259,9 +259,21 @@ export const PlayerInteractionsHubModal: React.FC<PlayerInteractionsHubModalProp
                             x{gift.count}
                           </span>
                         </div>
-                        <span className="text-[11px] text-emerald-300 font-medium block">
-                          Отправитель: {gift.senderAvatar} {gift.senderName} (Ур. {gift.senderLevel})
-                        </span>
+                        {/* ИСПРАВЛЕНИЕ ОТОБРАЖЕНИЯ АВАТАРКИ/ССЫЛКИ ОТПРАВИТЕЛЯ */}
+                        <div className="flex items-center gap-1.5 text-[11px] text-emerald-300 font-medium mt-0.5">
+                          <span>Отправитель:</span>
+                          {gift.senderAvatar?.startsWith('http') ? (
+                            <img
+                              src={gift.senderAvatar}
+                              alt=""
+                              className="w-4 h-4 rounded-full object-cover border border-emerald-500/50 inline-block"
+                            />
+                          ) : (
+                            <span>{gift.senderAvatar}</span>
+                          )}
+                          <span className="truncate max-w-[160px]">{gift.senderName}</span>
+                          <span className="shrink-0">(Ур. {gift.senderLevel})</span>
+                        </div>
                         <p className="text-[11px] text-amber-200/90 italic mt-0.5 line-clamp-2">
                           «{gift.note}»
                         </p>
