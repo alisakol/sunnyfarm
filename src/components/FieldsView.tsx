@@ -30,6 +30,7 @@ interface FieldsViewProps {
   onInteractDecoration: (decorationId: string) => void;
   onInteractPlacedDecoration?: (decorId: string) => void;
   onOpenSeasonalModal: () => void;
+  onOpenSubbotnikModal?: () => void; // Кнопка сезонного пропуска
   onOpenDecorShop?: () => void;
   onOpenJournal?: () => void;
   onOpenQuests?: (questId?: string) => void;
@@ -65,6 +66,7 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
   onInteractDecoration,
   onInteractPlacedDecoration,
   onOpenSeasonalModal,
+  onOpenSubbotnikModal,
   onOpenDecorShop,
   onOpenJournal,
   onOpenQuests,
@@ -76,12 +78,9 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
 }) => {
   const [showWeatherSelector, setShowWeatherSelector] = useState<boolean>(false);
   const [cropFilter, setCropFilter] = useState<'all' | 'seasonal' | 'standard'>('all');
-    // Автоматический фильтр культур по текущему сезону игры
+  
   const filteredCrops = Object.values(CROPS).filter((crop) => {
-    // 1. Пшеница, морковь, кукуруза, клубника (нет поля season) доступны всегда
     if (!crop.season) return true;
-    
-    // 2. Сезонные культуры отображаются только в свой собственный сезон
     return crop.season === season;
   });
 
@@ -91,7 +90,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
   const seasonCfg = SEASONS_CONFIG[season];
   const currentMonthName = getCalendarMonthName();
 
-  // Helper to check progress with dynamic weather & seasonal modifier
   const getPlotGrowth = (plot: FarmPlot) => {
     if (!plot.cropId || !plot.plantedAt) return { percent: 0, isReady: false, remainingSec: 0, speedMultiplier: 1.0 };
     const crop = CROPS[plot.cropId];
@@ -121,7 +119,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
     return { percent, isReady, remainingSec, speedMultiplier: weatherCfg.speedMultiplier * seasonalBonus };
   };
 
-  // Check how many are ready
   const readyPlots = plots.filter((p) => p.unlocked && getPlotGrowth(p).isReady);
   const unwateredPlots = plots.filter((p) => p.unlocked && p.cropId && !p.watered && !getPlotGrowth(p).isReady);
 
@@ -133,27 +130,21 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
 
     const growth = getPlotGrowth(plot);
 
-    // If already ready, harvest regardless of active tool for convenience!
     if (growth.isReady) {
       onHarvest(plot.id);
       return;
     }
 
     if (!plot.cropId) {
-      // КРИТИЧЕСКАЯ ПРОВЕРКА СЕЗОНА ПЕРЕД ПОСАДКОЙ:
       const selectedCrop = CROPS[selectedCropId];
       if (selectedCrop && selectedCrop.season && selectedCrop.season !== season) {
-        // Если в вашей игре есть функция всплывающих уведомлений, можно раскомментировать строку ниже:
          alert(`Эту культуру можно сажать только в сезон: ${selectedCrop.season}`);
-        return; // Полностью блокируем посадку
+        return;
       }
-
-      // Empty plot: plant current selected crop
       onPlant(plot.id);
       return;
     }
 
-    // Growing plot
     if (activeTool === 'water' && !plot.watered) {
       onWater(plot.id);
       return;
@@ -164,18 +155,48 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
       return;
     }
 
-    // Default action: if not watered, water it; otherwise show remaining time
     if (!plot.watered) {
       onWater(plot.id);
     } else {
-      onHarvest(plot.id); // shows remaining time toast
+      onHarvest(plot.id);
     }
   };
 
-
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar pb-3 px-3">
-      {/* Weather & Day Sky Ambience banner with active buff indicator */}
+    /* ВАЖНО: Увеличен отступ снизу до pb-28, чтобы контент не перекрывался нижней панелью */
+    <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar pb-28 px-3">
+      
+      {/* Кнопка быстрого доступа к сезонному пропуску «Субботник» */}
+      {onOpenSubbotnikModal && (
+        <div className="mt-2 mb-1">
+          <button
+            onClick={onOpenSubbotnikModal}
+            className="w-full bg-gradient-to-r from-amber-900/90 via-emerald-950/90 to-amber-900/90 border border-amber-500/70 hover:border-amber-400 rounded-2xl p-2.5 shadow-lg flex items-center justify-between transition-all active:scale-98 cursor-pointer group"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl group-hover:scale-110 transition-transform shadow-inner">
+                🧹
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-white font-game">Осенний Субботник</span>
+                  <span className="bg-amber-500/20 text-amber-300 text-[9px] font-bold px-1.5 py-0.2 rounded-full border border-amber-500/40">
+                    Сезонный пропуск
+                  </span>
+                </div>
+                <span className="text-[10px] text-amber-200/80 block mt-0.5">
+                  Выполняйте задания и забирайте редкий декор и питомца! ✨
+                </span>
+              </div>
+            </div>
+            <div className="bg-amber-600 group-hover:bg-amber-500 text-stone-950 px-3 py-1 rounded-xl text-xs font-bold shadow-sm shrink-0">
+              Открыть ➔
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* Weather & Day Sky Ambience banner */}
       <div className="mt-2.5 mb-2 relative">
         <div className="flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl bg-emerald-950/80 border border-emerald-700/60 text-emerald-100 shadow-sm">
           <div className="flex items-center gap-1.5 font-medium flex-1 min-w-0">
@@ -193,7 +214,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
             </div>
           </div>
 
-          {/* Weather Switcher & Quick Batch Actions */}
           <div className="flex items-center gap-1 shrink-0 ml-1.5">
             {onChangeWeather && (
               <button
@@ -227,7 +247,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
           </div>
         </div>
 
-        {/* Weather Selector Dropdown */}
         {showWeatherSelector && onChangeWeather && (
           <div className="absolute top-full left-0 right-0 mt-1 z-30 p-2 rounded-2xl bg-emerald-950/95 border border-emerald-600/80 shadow-2xl animate-in fade-in zoom-in-95 duration-150">
             <span className="text-[10px] font-bold text-amber-200 block mb-1.5 px-1">
@@ -259,9 +278,8 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
         )}
       </div>
 
-      {/* Seasonal Decorations & Interactive Props Section */}
+      {/* Seasonal Decorations Section */}
       <div className="mb-2.5">
-        {/* Season header bar with current month and modal trigger */}
         <div
           onClick={onOpenSeasonalModal}
           className="flex items-center justify-between text-xs px-2.5 py-1.5 mb-1 rounded-xl bg-gradient-to-r from-stone-900/90 via-amber-950/70 to-stone-900/90 border border-amber-600/50 text-amber-100 shadow-sm cursor-pointer hover:border-amber-400 transition-colors"
@@ -281,7 +299,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
           </div>
         </div>
 
-        {/* Centerpiece interactive seasonal figures */}
         <SeasonalDecorations
           season={season}
           isSurpriseAvailable={isSeasonalSurpriseAvailable}
@@ -289,10 +306,9 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
         />
       </div>
 
-            {/* Active NPC Visitors Road (Сельская Дорога с Гостями и Квестами) */}
+      {/* Active NPC Visitors Road */}
       {npcQuests && npcQuests.length > 0 && onOpenQuests && (
         <NpcVisitorsRoad
-          // Фильтруем квесты: оставляем все обычные, а сезонные — только текущего сезона
           npcQuests={npcQuests.filter((quest) => {
             if (quest.category !== 'seasonal') return true;
             return quest.season === season;
@@ -302,8 +318,7 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
         />
       )}
 
-
-      {/* Farm Aesthetic Decorations Promenade (Аллея Декораций Фермы) */}
+      {/* Farm Aesthetic Decorations Promenade */}
       <div className="mb-3 bg-gradient-to-r from-stone-900/90 via-emerald-950/80 to-stone-900/90 border border-amber-600/40 rounded-2xl p-2.5 shadow-md">
         <div className="flex items-center justify-between mb-2 px-1">
           <div className="flex items-center gap-1.5">
@@ -479,7 +494,7 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
         </div>
       )}
 
-      {/* Orchard Section (Сад деревьев) */}
+      {/* Orchard Section */}
       <div className="mb-3 bg-gradient-to-r from-emerald-900/80 via-emerald-800/80 to-emerald-900/80 border border-emerald-600/40 rounded-2xl p-2.5 shadow-md">
         <div className="flex items-center justify-between mb-1.5 px-1">
           <span className="text-xs font-bold text-amber-200 flex items-center gap-1">
@@ -559,7 +574,7 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
         </span>
       </div>
 
-      {/* 12 Farm Plots Grid (Responsive for Mobile, Landscape & Tablet) */}
+      {/* 12 Farm Plots Grid */}
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-2.5 mb-3">
         {plots.map((plot) => {
           if (!plot.unlocked) {
@@ -595,17 +610,14 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
                   : 'bg-gradient-to-b from-amber-900 via-stone-900 to-amber-950 border-2 border-amber-800/80'
               } ${growth.isReady ? 'ring-2 ring-amber-400 animate-pulse-glow bg-amber-950/90' : ''}`}
             >
-              {/* Soil Rows Visual Pattern */}
               <div className="absolute inset-0 opacity-15 rounded-2xl bg-[radial-gradient(#d97706_1px,transparent_1px)] [background-size:6px_6px] pointer-events-none" />
 
-              {/* Water indicator */}
               {plot.watered && (
                 <div className="absolute top-1 right-1 flex items-center bg-sky-950/80 border border-sky-400/60 rounded-full px-1 py-0.2 text-[9px] text-sky-300 font-bold">
                   💧
                 </div>
               )}
 
-              {/* Empty Plot */}
               {!plot.cropId && (
                 <div className="flex-1 flex flex-col items-center justify-center">
                   <div className="w-8 h-8 rounded-full bg-amber-900/40 border border-amber-700/50 flex items-center justify-center text-amber-400 text-lg mb-1">
@@ -615,7 +627,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
                 </div>
               )}
 
-              {/* Growing / Ready Plot */}
               {plot.cropId && crop && (
                 <>
                   <div className="flex-1 flex flex-col items-center justify-center">
@@ -643,7 +654,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
                     )}
                   </div>
 
-                  {/* Progress Bar */}
                   {!growth.isReady && (
                     <div className="w-full bg-stone-950/80 rounded-full h-1.5 overflow-hidden border border-emerald-800/60 mt-1">
                       <div
@@ -661,7 +671,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
 
       {/* Toolbelt & Seed Selector */}
       <div className="bg-emerald-950/90 border border-emerald-700/60 rounded-2xl p-2.5 shadow-lg">
-        {/* Tool Mode Buttons */}
         <div className="grid grid-cols-4 gap-1.5 mb-2.5">
           <button
             onClick={() => onSelectTool('hand')}
@@ -712,7 +721,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
           </button>
         </div>
 
-        {/* Crops Filter Tabs & Horizontal Scroll Selector */}
         <div className="flex items-center justify-between gap-1 pt-1 pb-0.5 px-0.5">
           <div className="flex items-center gap-1 text-[10px]">
             <button
@@ -753,8 +761,7 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
           </span>
         </div>
 
-               {/* Crops Horizontal Scroll Selector */}
-                {/* Crops Horizontal Scroll Selector */}
+        {/* Crops Horizontal Scroll Selector */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
           {filteredCrops
             .filter((crop) => {
@@ -786,7 +793,6 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
                   }`}
                   title={crop.description}
                 >
-                  {/* Seasonal badge */}
                   {crop.season && (
                     <span
                       className={`absolute -top-1 -right-1 text-[8px] font-black px-1 rounded-full flex items-center shadow-xs ${
@@ -827,4 +833,3 @@ export const FieldsView: React.FC<FieldsViewProps> = ({
     </div>
   );
 };
-
