@@ -27,7 +27,8 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
   const now = Date.now();
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar pb-3 px-3">
+    /* ВАЖНО: Увеличен отступ снизу до pb-28, чтобы контент не перекрывался нижней панелью */
+    <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar pb-28 px-3">
       {/* Title Banner */}
       <div className="mt-2.5 mb-2.5 flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-700/40 text-emerald-100 shadow-sm">
         <span className="font-bold text-amber-200 flex items-center gap-1.5">
@@ -193,7 +194,6 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                   const isRecipeUnlocked = level >= recipe.minLevel;
                   const queueFull = building.queue.length >= building.maxSlots;
 
-                  // Check ingredients
                   let hasAllIngredients = true;
                   const ingredientsCheck = recipe.ingredients.map((ing) => {
                     const have = inventory[ing.itemId] || 0;
@@ -225,7 +225,6 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                             </span>
                           </div>
 
-                          {/* Ingredients list */}
                           <div className="flex flex-wrap items-center gap-1 mt-1 text-[10px]">
                             {ingredientsCheck.map((ing, i) => {
                               let ingLabel = ing.itemId;
@@ -274,7 +273,6 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Craft Button */}
                       <div>
                         {isRecipeUnlocked ? (
                           <button

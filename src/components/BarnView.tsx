@@ -67,7 +67,8 @@ export const BarnView: React.FC<BarnViewProps> = ({
   const filteredItems = allItems.filter((item) => filter === 'all' || item.category === filter);
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar pb-3 px-3">
+    /* ВАЖНО: Увеличен отступ снизу до pb-28 для фиксации под плавающей навигацией */
+    <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar pb-28 px-3">
       {/* Title Banner */}
       <div className="mt-2.5 mb-2.5 flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-700/40 text-emerald-100 shadow-sm">
         <span className="font-bold text-amber-200 flex items-center gap-1.5">

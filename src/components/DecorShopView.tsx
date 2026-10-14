@@ -113,7 +113,8 @@ export const DecorShopView: React.FC<DecorShopViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-radial from-stone-900 via-emerald-950/40 to-stone-950 overflow-y-auto pb-4 select-none">
+    /* ВАЖНО: Увеличен отступ снизу до pb-28, чтобы контент не перекрывался нижней панелью */
+    <div className="flex-1 flex flex-col h-full bg-radial from-stone-900 via-emerald-950/40 to-stone-950 overflow-y-auto pb-28 select-none">
       {/* Top Header Card: Aesthetic Status */}
       <div className="p-3 bg-gradient-to-b from-emerald-900/60 via-stone-950/90 to-stone-950 border-b border-emerald-800/50 shrink-0 shadow-lg">
         <div className="flex items-center justify-between gap-2 mb-2">
@@ -299,7 +300,6 @@ export const DecorShopView: React.FC<DecorShopViewProps> = ({
 
                   {/* Action Bar */}
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-800/80 mt-auto">
-                    {/* Price or Level Requirement */}
                     <div className="flex items-center gap-2">
                       {!isOwned ? (
                         isLevelLocked ? (
@@ -336,7 +336,6 @@ export const DecorShopView: React.FC<DecorShopViewProps> = ({
                       )}
                     </div>
 
-                    {/* Action Buttons */}
                     <div>
                       {!isOwned ? (
                         <button

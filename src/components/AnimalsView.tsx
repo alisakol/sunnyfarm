@@ -42,7 +42,8 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar pb-3 px-3">
+    /* ВАЖНО: Увеличен отступ снизу до pb-28 для фиксации под плавающей навигацией */
+    <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar pb-28 px-3">
       {/* Title Banner */}
       <div className="mt-2.5 mb-2.5 flex items-center justify-between text-xs px-2.5 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-700/40 text-emerald-100 shadow-sm">
         <span className="font-bold text-amber-200 flex items-center gap-1.5">
@@ -165,7 +166,6 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
                             : 'bg-emerald-950/70 border-emerald-800/60'
                         }`}
                       >
-                        {/* Top: Pet button & Animal Avatar */}
                         <div className="flex items-center justify-between mb-1">
                           <button
                             onClick={() => onPetAnimal(animal.id)}
@@ -184,7 +184,6 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
                           </span>
                         </div>
 
-                        {/* Status Label */}
                         <div className="my-1 text-center">
                           {isHungry && (
                             <span className="text-[10px] text-amber-300/90 font-medium">
@@ -212,7 +211,6 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
                           )}
                         </div>
 
-                        {/* Action Button: Feed or Collect */}
                         <div className="mt-1">
                           {isHungry && (
                             <button
