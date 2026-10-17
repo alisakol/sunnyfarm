@@ -45,9 +45,12 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
   effectiveSeason = 'autumn',
 }) => {
   const [questCategory, setQuestCategory] = useState<'all' | 'story' | 'seasonal' | 'daily_npc'>('story');
-  const [selectedQuestId, setSelectedQuestId] = useState<string>(
-    initialQuestId || npcQuests[0]?.id || ''
-  );
+  
+  // ИСПРАВЛЕНИЕ: Фиксация выбранного квеста, чтобы при обновлении стейта не сбрасывало в начало
+  const [selectedQuestId, setSelectedQuestId] = useState<string>(() => {
+    return initialQuestId || npcQuests[0]?.id || '';
+  });
+
   const [filterDifficulty, setFilterDifficulty] = useState<'all' | 'challenging' | 'master' | 'epic'>('all');
   const [countdownStr, setCountdownStr] = useState<string>('');
 
@@ -74,30 +77,29 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
     return () => clearInterval(interval);
   }, []);
 
+  // Синхронизация initialQuestId только при первичном открытии
   React.useEffect(() => {
-    if (initialQuestId) {
+    if (isOpen && initialQuestId) {
       setSelectedQuestId(initialQuestId);
       const target = npcQuests.find((q) => q.id === initialQuestId);
       if (target?.category) {
         setQuestCategory(target.category);
       }
-    } else if (!selectedQuestId && npcQuests[0]?.id) {
+    } else if (isOpen && !selectedQuestId && npcQuests[0]?.id) {
       setSelectedQuestId(npcQuests[0].id);
     }
-  }, [initialQuestId, isOpen, npcQuests]);
+  }, [isOpen, initialQuestId]);
 
   if (!isOpen) return null;
 
-    // Filter by Category first
+  // Filter by Category first
   const categoryQuests = npcQuests.filter((q) => {
     if (questCategory === 'all') return true;
     if (questCategory === 'story') return q.category === 'story';
-    // ИСПРАВЛЕНО: Теперь сезонный квест фильтруется строго по текущему времени года
     if (questCategory === 'seasonal') return q.category === 'seasonal' && q.season === effectiveSeason;
     if (questCategory === 'daily_npc') return !q.category || q.category === 'daily_npc';
     return true;
   });
-
 
   // Filter by Difficulty
   const filteredQuests = categoryQuests.filter((q) => {
@@ -105,6 +107,7 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
     return q.difficulty === filterDifficulty;
   });
 
+  // Гарантируем, что выбранный квест всегда существует, иначе берем первый доступный
   const selectedQuest =
     filteredQuests.find((q) => q.id === selectedQuestId) ||
     categoryQuests.find((q) => q.id === selectedQuestId) ||
@@ -146,10 +149,10 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
                   onRefreshDailyQuests(true);
                 }}
                 className="p-1.5 bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-600/60 text-emerald-300 rounded-xl text-xs flex items-center gap-1 transition-colors cursor-pointer"
-                title="Обновить ежедневные квесты (смена поручений)"
+                title="Сгенерировать новые ежедневные квесты"
               >
                 <RotateCw className="w-4 h-4" />
-                <span className="hidden sm:inline font-bold">Смена квестов</span>
+                <span className="hidden sm:inline font-bold">Новые квесты</span>
               </button>
             )}
             <button
@@ -302,17 +305,17 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
                   onRefreshDailyQuests(true);
                 }}
                 className="px-2.5 py-1.5 bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-600 hover:to-teal-600 border border-emerald-400/60 text-white rounded-xl text-[11px] font-bold flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer shrink-0"
-                title="Обновить список поручений (бесплатная смена раз в день)"
+                title="Сгенерировать новые случайные квесты"
               >
                 <RotateCw className="w-3.5 h-3.5" />
-                <span className="hidden xs:inline">Сменить квесты</span>
+                <span className="hidden xs:inline">Новые квесты</span>
                 <span className="xs:hidden">Смена</span>
               </button>
             )}
           </div>
         )}
 
-        {/* Difficulty Filter Chips (for daily / all) */}
+        {/* Difficulty Filter Chips */}
         {(questCategory === 'daily_npc' || questCategory === 'all') && (
           <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs shrink-0">
             {[
@@ -448,11 +451,6 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
                 <p className="text-[11px] text-amber-100/90 italic font-serif mt-1.5 bg-black/20 p-2 rounded-xl border border-stone-700/50">
                   {selectedQuest.dialogue}
                 </p>
-                {selectedQuest.story && (
-                  <p className="text-[10px] text-stone-300 mt-1 pl-1">
-                    {selectedQuest.story}
-                  </p>
-                )}
               </div>
             </div>
 
@@ -466,7 +464,6 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
               <div className="space-y-2">
                 {selectedQuest.objectives.map((obj) => {
                   const isDone = obj.currentCount >= obj.targetCount;
-                  // Check any acceptable item in inventory (supports strawberry_pie, apple_pie, pumpkin_pie, pie)
                   const candidateIds = obj.allowedItemIds && obj.allowedItemIds.length > 0
                     ? obj.allowedItemIds
                     : obj.itemId === 'pie'
@@ -502,7 +499,6 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
                             {obj.currentCount}/{obj.targetCount}
                           </span>
                         </div>
-                        {/* Progress Bar */}
                         <div className="w-full h-1.5 bg-stone-950 rounded-full overflow-hidden border border-stone-700">
                           <div
                             className={`h-full transition-all duration-300 ${
@@ -515,7 +511,6 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
                         </div>
                       </div>
 
-                      {/* Deliver Button */}
                       {!selectedQuest.completed && !isDone && (
                         <button
                           onClick={() => onContribute(selectedQuest.id, obj.id)}
@@ -566,35 +561,13 @@ export const NpcQuestsModal: React.FC<NpcQuestsModalProps> = ({
                   <span className="text-[10px] text-purple-200/70">Опыт XP</span>
                 </div>
               </div>
-
-              {/* Unique Decor Item Reward */}
-              {selectedQuest.rewards.decorItem && (
-                <div className="p-2.5 rounded-xl bg-gradient-to-r from-amber-950/60 via-stone-850 to-amber-950/60 border border-amber-500/50 flex items-center gap-2.5">
-                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-2xl shrink-0">
-                    {selectedQuest.rewards.decorItem.emoji}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-1.5">
-                      <span className="font-bold text-amber-200 text-xs">
-                        {selectedQuest.rewards.decorItem.name}
-                      </span>
-                      <span className="text-[9px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-1 rounded-sm uppercase font-extrabold">
-                        +{selectedQuest.rewards.decorItem.aestheticPoints} ⭐
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-stone-300 mt-0.5">
-                      {selectedQuest.rewards.decorItem.perk}
-                    </p>
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Complete Quest Claim Button */}
             {selectedQuest.completed ? (
               <div className="p-3 bg-emerald-950/70 border border-emerald-500/60 rounded-2xl text-center text-emerald-300 font-bold flex items-center justify-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-                <span>Квест завершён! Запись навечно внесена в Дневник Фермера 📖</span>
+                <span>Квест завершён! Запись внесена в Дневник Фермера 📖</span>
               </div>
             ) : (
               (() => {

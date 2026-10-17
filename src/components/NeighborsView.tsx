@@ -133,11 +133,14 @@ export const NeighborsView: React.FC<NeighborsViewProps> = ({
               }`}
             >
               <div className="relative shrink-0">
-                {farm.photoURL ? (
+                {farm.photoURL || farm.ownerAvatar?.startsWith('http') ? (
                   <img
-                    src={farm.photoURL}
+                    src={farm.photoURL || farm.ownerAvatar}
                     alt={farm.ownerName}
                     className="w-7 h-7 rounded-lg object-cover border border-emerald-400 shadow-xs"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    }}
                   />
                 ) : (
                   <div className="text-xl shrink-0">{farm.ownerAvatar}</div>
@@ -172,11 +175,14 @@ export const NeighborsView: React.FC<NeighborsViewProps> = ({
       <div className="rounded-2xl bg-gradient-to-b from-amber-950/70 via-emerald-950/80 to-emerald-950/90 border border-emerald-700/70 p-3 shadow-md mb-2.5">
         <div className="flex items-start justify-between gap-2 border-b border-emerald-800/60 pb-2.5 mb-2.5">
           <div className="flex items-center gap-2.5">
-            {currentFarm.photoURL ? (
+            {currentFarm.photoURL || currentFarm.ownerAvatar?.startsWith('http') ? (
               <img
-                src={currentFarm.photoURL}
+                src={currentFarm.photoURL || currentFarm.ownerAvatar}
                 alt={currentFarm.ownerName}
                 className="w-12 h-12 rounded-2xl object-cover border-2 border-sky-400 shadow-md shrink-0"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = 'none';
+                }}
               />
             ) : (
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-600 to-emerald-700 border border-amber-400/80 flex items-center justify-center text-2xl shadow-md shrink-0">
@@ -528,8 +534,23 @@ export const NeighborsView: React.FC<NeighborsViewProps> = ({
                     : 'bg-emerald-950/60 border-emerald-800/60'
                 }`}
               >
-                <div className="text-xl p-1 rounded-lg bg-emerald-900/50 border border-emerald-700/40 shrink-0">
-                  {comm.avatar}
+                <div className="w-8 h-8 rounded-lg bg-emerald-900/50 border border-emerald-700/40 shrink-0 flex items-center justify-center overflow-hidden">
+                  {comm.avatar?.startsWith('http') ? (
+                    <img
+                      src={comm.avatar}
+                      alt={comm.author}
+                      className="w-full h-full object-cover rounded-lg"
+                      onError={(e) => {
+                        const target = e.currentTarget as HTMLImageElement;
+                        target.style.display = 'none';
+                        if (target.parentElement) {
+                          target.parentElement.textContent = '🧑‍🌾';
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xl">{comm.avatar || '🧑‍🌾'}</span>
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">

@@ -79,7 +79,7 @@ export const PlayerInteractionsHubModal: React.FC<PlayerInteractionsHubModalProp
       name: 'Семена подсолнухов',
       emoji: '🌻',
       count: 5,
-      costText: 'Бесплатно ',
+      costText: 'Бесплатно (дружеский подарок)',
       available: true,
       desc: 'Позволит соседу вырастить красивые подсолнухи',
     },
@@ -88,7 +88,7 @@ export const PlayerInteractionsHubModal: React.FC<PlayerInteractionsHubModalProp
       name: 'Эко-удобрение',
       emoji: '✨',
       count: 3,
-      costText: 'Бесплатно ',
+      costText: 'Бесплатно (дружеский подарок)',
       available: true,
       desc: 'Мгновенно ускоряет рост посевов',
     },
@@ -259,20 +259,22 @@ export const PlayerInteractionsHubModal: React.FC<PlayerInteractionsHubModalProp
                             x{gift.count}
                           </span>
                         </div>
-                        {/* ИСПРАВЛЕНИЕ ОТОБРАЖЕНИЯ АВАТАРКИ/ССЫЛКИ ОТПРАВИТЕЛЯ */}
                         <div className="flex items-center gap-1.5 text-[11px] text-emerald-300 font-medium mt-0.5">
-                          <span>Отправитель:</span>
+                          <span className="text-stone-300">От:</span>
                           {gift.senderAvatar?.startsWith('http') ? (
                             <img
                               src={gift.senderAvatar}
-                              alt=""
-                              className="w-4 h-4 rounded-full object-cover border border-emerald-500/50 inline-block"
+                              alt={gift.senderName}
+                              className="w-4 h-4 rounded-full object-cover border border-emerald-500/50 inline-block shrink-0 shadow-xs"
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).style.display = 'none';
+                              }}
                             />
                           ) : (
-                            <span>{gift.senderAvatar}</span>
+                            <span className="shrink-0">{gift.senderAvatar || '🧑‍🌾'}</span>
                           )}
-                          <span className="truncate max-w-[160px]">{gift.senderName}</span>
-                          <span className="shrink-0">(Ур. {gift.senderLevel})</span>
+                          <span className="truncate max-w-[150px] font-bold text-white">{gift.senderName}</span>
+                          <span className="shrink-0 text-amber-300 font-semibold">(Ур. {gift.senderLevel})</span>
                         </div>
                         <p className="text-[11px] text-amber-200/90 italic mt-0.5 line-clamp-2">
                           «{gift.note}»
@@ -366,14 +368,17 @@ export const PlayerInteractionsHubModal: React.FC<PlayerInteractionsHubModalProp
                       }`}
                     >
                       <div className="relative shrink-0">
-                        {farm.photoURL ? (
+                        {farm.photoURL || farm.ownerAvatar?.startsWith('http') ? (
                           <img
-                            src={farm.photoURL}
+                            src={farm.photoURL || farm.ownerAvatar}
                             alt={farm.ownerName}
                             className="w-7 h-7 rounded-lg object-cover border border-sky-400"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLImageElement).style.display = 'none';
+                            }}
                           />
                         ) : (
-                          <span className="text-xl">{farm.ownerAvatar}</span>
+                          <span className="text-xl">{farm.ownerAvatar || '🧑‍🌾'}</span>
                         )}
                         {farm.isRealPlayer && (
                           <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 bg-sky-400 rounded-full border border-stone-900" title="Google игрок" />
@@ -530,8 +535,23 @@ export const PlayerInteractionsHubModal: React.FC<PlayerInteractionsHubModalProp
                 className="p-3 rounded-2xl bg-gradient-to-r from-stone-900/90 via-stone-900/60 to-stone-950 border border-stone-800/80 flex items-center justify-between gap-2.5 shadow-sm"
               >
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-900/40 border border-emerald-700/50 flex items-center justify-center text-xl shrink-0">
-                    {log.visitorAvatar}
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-900/40 border border-emerald-700/50 flex items-center justify-center text-xl shrink-0 overflow-hidden shadow-sm">
+                    {log.visitorAvatar?.startsWith('http') ? (
+                      <img
+                        src={log.visitorAvatar}
+                        alt={log.visitorName}
+                        className="w-full h-full object-cover rounded-2xl"
+                        onError={(e) => {
+                          const target = e.currentTarget as HTMLImageElement;
+                          target.style.display = 'none';
+                          if (target.parentElement) {
+                            target.parentElement.textContent = '🧑‍🌾';
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span>{log.visitorAvatar || '🧑‍🌾'}</span>
+                    )}
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5">
