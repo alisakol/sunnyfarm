@@ -1,5 +1,5 @@
-import React from 'react';
-import { Map, X, Sparkles, Navigation, Layers, CheckCircle2, ChevronRight, User } from 'lucide-react';
+import React, { useState } from 'react';
+import { Map, X, Sparkles, Navigation, Layers, CheckCircle2, ChevronRight, ChevronDown, User } from 'lucide-react';
 import { TabType } from './BottomNav';
 import { sound } from '../utils/audio';
 
@@ -44,6 +44,9 @@ export const FarmMapModal: React.FC<FarmMapModalProps> = ({
   currentSeasonEmoji,
   onOpenRecipeBook,
 }) => {
+  // Состояние для отслеживания открытой зоны (по умолчанию открыты 'fields')
+  const [expandedZone, setExpandedZone] = useState<TabType | null>('fields');
+
   if (!isOpen) return null;
 
   const farmZones = [
@@ -139,6 +142,11 @@ export const FarmMapModal: React.FC<FarmMapModalProps> = ({
     onClose();
   };
 
+  const toggleZone = (tab: TabType) => {
+    sound.playTap();
+    setExpandedZone(expandedZone === tab ? null : tab);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-200 select-none">
       <div className="relative w-full max-w-2xl bg-gradient-to-b from-stone-900 via-stone-950 to-stone-900 border-2 border-amber-600/70 rounded-3xl p-3 sm:p-5 shadow-2xl flex flex-col max-h-[92vh] overflow-hidden text-amber-100">
@@ -160,7 +168,7 @@ export const FarmMapModal: React.FC<FarmMapModalProps> = ({
               <p className="text-[11px] text-emerald-300/90 flex items-center gap-1.5 mt-0.5">
                 <span>{currentSeasonEmoji} Сезон: {currentSeasonName}</span>
                 <span>•</span>
-                <span>Нажмите на сектор для мгновенного перехода</span>
+                <span>Нажмите на сектор для просмотра деталей</span>
               </p>
             </div>
           </div>
@@ -225,50 +233,79 @@ export const FarmMapModal: React.FC<FarmMapModalProps> = ({
           </div>
         </div>
 
-        {/* Interactive Farm Zones Grid (Optimized for both Phone & Tablet 2/3 cols) */}
-        <div className="flex-1 overflow-y-auto no-scrollbar grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5 pr-1 py-1">
-          {farmZones.map((zone) => (
-            <button
-              key={zone.id}
-              onClick={() => handleSelectZone(zone.id)}
-              className={`p-3 rounded-2xl border text-left bg-gradient-to-br ${zone.gradient} ${zone.border} hover:scale-[1.01] active:scale-[0.98] transition-all cursor-pointer shadow-md flex flex-col justify-between group relative overflow-hidden`}
-            >
-              <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-11 h-11 rounded-2xl bg-stone-900/80 border border-amber-500/30 flex items-center justify-center text-2xl shadow-inner group-hover:scale-110 transition-transform shrink-0">
-                    {zone.emoji}
+        {/* Interactive Farm Zones Accordion (Single Column layout for accordion) */}
+        <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2 pr-1 py-1">
+          {farmZones.map((zone) => {
+            const isExpanded = expandedZone === zone.id;
+
+            return (
+              <div
+                key={zone.id}
+                className={`rounded-2xl border bg-gradient-to-br transition-all duration-300 shadow-md overflow-hidden ${
+                  isExpanded ? `${zone.gradient}${zone.border}` : 'bg-stone-900 border-stone-800/80'
+                }`}
+              >
+                {/* Аккордеон: Заголовок (Кликабельный) */}
+                <button
+                  onClick={() => toggleZone(zone.id)}
+                  className="w-full p-3 flex items-center justify-between text-left cursor-pointer hover:bg-stone-800/30 transition-colors"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-11 h-11 rounded-2xl bg-stone-900/80 border border-amber-500/30 flex items-center justify-center text-2xl shadow-inner shrink-0">
+                      {zone.emoji}
+                    </div>
+                    <div>
+                      <h3 className={`text-xs sm:text-sm font-bold transition-colors ${isExpanded ? 'text-amber-200' : 'text-stone-300'}`}>
+                        {zone.name}
+                      </h3>
+                      {!isExpanded && (
+                         <span className="text-[10px] text-stone-500 block leading-tight font-mono mt-0.5">
+                           📍 {zone.coords}
+                         </span>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-xs sm:text-sm font-bold text-white group-hover:text-amber-200 transition-colors">
-                      {zone.name}
-                    </h3>
-                    <span className="text-[10px] text-amber-300/70 block leading-tight font-mono">
-                      📍 {zone.coords}
+
+                  <div className="flex items-center gap-3">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-lg border border-amber-500/30 shrink-0 ${zone.badgeColor}`}>
+                      {zone.badge}
                     </span>
+                    <div className="text-stone-500">
+                      {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                    </div>
                   </div>
-                </div>
+                </button>
 
-                <span className={`text-[10px] px-2 py-0.5 rounded-lg border border-amber-500/30 shrink-0 ${zone.badgeColor}`}>
-                  {zone.badge}
-                </span>
+                {/* Аккордеон: Раскрывающийся контент */}
+                {isExpanded && (
+                  <div className="px-3 pb-3 pt-1 animate-in slide-in-from-top-2 fade-in duration-200">
+                    <p className="text-[11px] text-stone-300/90 mb-3 leading-relaxed">
+                      {zone.subtitle}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-stone-800/80 text-[10px]">
+                      <span className="text-emerald-300 font-semibold flex items-center gap-1">
+                        <Sparkles className="w-3 h-3 text-amber-400" />
+                        <span>{zone.status}</span>
+                      </span>
+                      
+                      {/* Кнопка "Перейти" теперь внутри раскрытого контента */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation(); // Предотвращает закрытие аккордеона при клике на Перейти
+                          handleSelectZone(zone.id);
+                        }}
+                        className="bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold px-3 py-1.5 rounded-xl transition-all shadow-sm active:scale-95 flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Перейти в локацию</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              <p className="text-[11px] text-stone-300/90 mb-2 leading-relaxed">
-                {zone.subtitle}
-              </p>
-
-              <div className="flex items-center justify-between pt-2 border-t border-stone-800/80 text-[10px]">
-                <span className="text-emerald-300 font-semibold flex items-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>{zone.status}</span>
-                </span>
-                <span className="text-amber-400 font-bold group-hover:translate-x-1 transition-transform flex items-center gap-0.5">
-                  <span>Перейти</span>
-                  <ChevronRight className="w-3 h-3" />
-                </span>
-              </div>
-            </button>
-          ))}
+            );
+          })}
         </div>
 
         {/* Bottom Fast Navigation Footnote */}

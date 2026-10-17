@@ -26,6 +26,7 @@ import { PlayerInteractionsHubModal } from './components/PlayerInteractionsHubMo
 import { FarmMapModal } from './components/FarmMapModal';
 import { RealFriendsModal } from './components/RealFriendsModal';
 import { RecipeBookModal } from './components/RecipeBookModal';
+import { SubbotnikPassModal } from './components/SubbotnikPassModal';
 import {
   FirestoreUserProfile,
   syncUserProfile,
@@ -144,6 +145,21 @@ export default function App() {
     startHorseRide,
     speedUpHorseRide,
     collectHorseRideReward,
+	// ---> ДОБАВЬТЕ ЭТИ 5 СТРОК (чтобы выдавать награды и покупать пропуск): <---
+    setGems,
+    setCoins,
+    setInventory,
+    setPurchasedDecorations,
+    setPlacedDecorations,
+	// ---> ДОБАВЬТЕ ЭТИ 8 СТРОК СЮДА: <---
+    subbotnikPoints,
+    setSubbotnikPoints,
+    isSubbotnikPremium,
+    setIsSubbotnikPremium,
+    claimedFreePass,
+    setClaimedFreePass,
+    claimedPremiumPass,
+    setClaimedPremiumPass,
   } = useGameState();
 
   const { user, isSyncing, saveToCloud, loadFromCloud } = useAuth();
@@ -157,6 +173,7 @@ export default function App() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
   const [isJournalOpen, setIsJournalOpen] = useState<boolean>(false);
   const [isQuestsOpen, setIsQuestsOpen] = useState<boolean>(false);
+  const [isSubbotnikOpen, setIsSubbotnikOpen] = useState<boolean>(false);
   const [isInteractionsHubOpen, setIsInteractionsHubOpen] = useState<boolean>(false);
   const [interactionHubInitialRecipient, setInteractionHubInitialRecipient] = useState<string>('');
   const [interactionHubInitialTab, setInteractionHubInitialTab] = useState<'inbox' | 'send' | 'visitors'>('inbox');
@@ -620,6 +637,9 @@ export default function App() {
             onInteractDecoration={interactWithSeasonalDecoration}
             onInteractPlacedDecoration={interactWithPlacedDecoration}
             onOpenSeasonalModal={() => setIsSeasonalModalOpen(true)}
+			// --- ДОБАВИТЬ ЭТУ СТРОЧКУ ---
+            onOpenSubbotnikModal={() => setIsSubbotnikOpen(true)} 
+            // ---------------------------
             onOpenDecorShop={() => setActiveTab('decor')}
             onOpenJournal={() => setIsJournalOpen(true)}
             onOpenQuests={handleOpenQuests}
@@ -948,6 +968,41 @@ export default function App() {
           handleOpenSendGift('player_' + player.id);
         }}
       />
+	  {isSubbotnikOpen && (
+        <SubbotnikPassModal
+          isOpen={isSubbotnikOpen}
+          onClose={() => setIsSubbotnikOpen(false)}
+          currentPoints={subbotnikPoints}
+          isPremiumUnlocked={isSubbotnikPremium}
+          claimedFreeLevels={claimedFreePass}
+          claimedPremiumLevels={claimedPremiumPass}
+          onUnlockPremium={() => {
+            if (gems >= 100) {
+              setGems((prev) => prev - 100);
+              setIsSubbotnikPremium(true);
+              sound.playLevelUp();
+            } else {
+              sound.playError();
+            }
+          }}
+          onClaimReward={(level, isPremium, reward) => {
+            if (isPremium) {
+              setClaimedPremiumPass((prev) => [...prev, level]);
+            } else {
+              setClaimedFreePass((prev) => [...prev, level]);
+            }
+
+            if (reward.type === 'coins') setCoins((prev) => prev + reward.amount);
+            if (reward.type === 'gems') setGems((prev) => prev + reward.amount);
+            if (reward.type === 'item') {
+              setInventory((prev) => ({
+                ...prev,
+                [reward.name]: (prev[reward.name] || 0) + reward.amount,
+              }));
+            }
+          }}
+        />
+      )}
     </AndroidFrame>
   );
 }

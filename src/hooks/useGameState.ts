@@ -107,6 +107,14 @@ export function useGameState() {
   const [xp, setXp] = useState<number>(0);
   const [newLevelUnlocked, setNewLevelUnlocked] = useState<number | null>(null);
 
+  // --- СОСТОЯНИЯ ОСЕННЕГО СУББОТНИКА ---
+  const [subbotnikPoints, setSubbotnikPoints] = useState<number>(0);
+  const [isSubbotnikPremium, setIsSubbotnikPremium] = useState<boolean>(false);
+  const [claimedFreePass, setClaimedFreePass] = useState<number[]>([]);
+  const [claimedPremiumPass, setClaimedPremiumPass] = useState<number[]>([]);
+
+  // ... дальше идет ваш остальной код (стейты инвентаря, полей и т.д.) ...
+
   // Daily reward system
   const [lastDailyClaimDate, setLastDailyClaimDate] = useState<string | null>(null);
   const [dailyStreak, setDailyStreak] = useState<number>(1);
@@ -295,6 +303,12 @@ export function useGameState() {
         if (parsed.xp !== undefined) setXp(parsed.xp);
         if (parsed.barnCapacity !== undefined) setBarnCapacity(parsed.barnCapacity);
         if (parsed.inventory) setInventory(parsed.inventory);
+		// --- ДОБАВИТЬ ЭТИ 4 СТРОЧКИ ДЛЯ СУББОТНИКА ---
+        if (parsed.subbotnikPoints !== undefined) setSubbotnikPoints(parsed.subbotnikPoints);
+        if (parsed.isSubbotnikPremium !== undefined) setIsSubbotnikPremium(parsed.isSubbotnikPremium);
+        if (parsed.claimedFreePass) setClaimedFreePass(parsed.claimedFreePass);
+        if (parsed.claimedPremiumPass) setClaimedPremiumPass(parsed.claimedPremiumPass);
+        // ---------------------------------------------
         if (parsed.plots) {
           if (parsed.plots.length < 24) {
             const existingPlots = [...parsed.plots];
@@ -359,9 +373,11 @@ export function useGameState() {
           }));
 
           // Merge any brand new quests from INITIAL_NPC_QUESTS
-          const existingIds = new Set(migratedQuests.map((q) => q.id));
-          const newQuestsToAdd = INITIAL_NPC_QUESTS.filter((template) => !existingIds.has(template.id));
-          setNpcQuests([...migratedQuests, ...newQuestsToAdd]);
+          //const existingIds = new Set(migratedQuests.map((q) => q.id));
+          //const newQuestsToAdd = INITIAL_NPC_QUESTS.filter((template) => !existingIds.has(template.id));
+          //setNpcQuests([...migratedQuests, ...newQuestsToAdd]);
+		  // Убрали авто-слияние, просто загружаем сохраненные квесты:
+          setNpcQuests(migratedQuests);
         }
         if (parsed.lastQuestsRefreshDate) setLastQuestsRefreshDate(parsed.lastQuestsRefreshDate);
         if (parsed.playerGifts && parsed.playerGifts.length > 0) setPlayerGifts(parsed.playerGifts);
@@ -391,7 +407,7 @@ export function useGameState() {
     }
   }, []);
 
-  // Save to LocalStorage
+ // Save to LocalStorage
   useEffect(() => {
     try {
       const dataToSave = {
@@ -423,12 +439,26 @@ export function useGameState() {
         playerHorses,
         activeHorseRides,
         unlockedTackIds,
+
+        // --- ДОБАВИТЬ СЮДА В ОБЪЕКТ ---
+        subbotnikPoints,
+        isSubbotnikPremium,
+        claimedFreePass,
+        claimedPremiumPass,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
     } catch {
       // ignore
     }
-  }, [coins, gems, level, xp, lastDailyClaimDate, dailyStreak, barnCapacity, inventory, plots, animals, buildings, trees, orders, achievements, stats, neighbors, seasonMode, lastSeasonalSurpriseDate, purchasedDecorations, placedDecorations, journalEntries, npcQuests, lastQuestsRefreshDate, playerGifts, playerVisitLogs, playerHorses, activeHorseRides, unlockedTackIds]);
+  }, [
+    coins, gems, level, xp, lastDailyClaimDate, dailyStreak, barnCapacity, inventory, plots, animals, 
+    buildings, trees, orders, achievements, stats, neighbors, seasonMode, lastSeasonalSurpriseDate, 
+    purchasedDecorations, placedDecorations, journalEntries, npcQuests, lastQuestsRefreshDate, 
+    playerGifts, playerVisitLogs, playerHorses, activeHorseRides, unlockedTackIds,
+    
+    // --- И ДОБАВИТЬ В КОНЕЦ МАССИВА ЗАВИСИМОСТЕЙ ---
+    subbotnikPoints, isSubbotnikPremium, claimedFreePass, claimedPremiumPass
+  ]);
 
   // XP & Level-up system (Железный сброс в 0 через линейный IF)
 const addXp = useCallback((amount: number) => {
@@ -2402,7 +2432,7 @@ const addXp = useCallback((amount: number) => {
     [inventory, npcQuests, showFloating]
   );
 
-  // Complete NPC quest and claim unique rewards & decor
+ // Complete NPC quest and claim unique rewards & decor
   const completeNpcQuest = useCallback(
     (questId: string) => {
       const quest = npcQuests.find((q) => q.id === questId);
@@ -2426,6 +2456,9 @@ const addXp = useCallback((amount: number) => {
       setCoins((c) => c + quest.rewards.coins);
       setGems((g) => g + quest.rewards.gems);
       addXp(quest.rewards.xp);
+
+      // --- ДОБАВЛЕНО: Начисление очков Осеннего Субботника ---
+      setSubbotnikPoints((prev) => prev + 25);
 
       // If quest grants unique decor item
       if (quest.rewards.decorItem) {
@@ -2469,7 +2502,7 @@ const addXp = useCallback((amount: number) => {
         spread: 90,
         origin: { y: 0.6 },
       });
-      showFloating(`Квест «${quest.title}» триумфально завершён!`, 'text-amber-300');
+      showFloating(`Квест завершён! +25 🍂 очков Субботника!`, 'text-amber-300');
     },
     [addXp, npcQuests, showFloating]
   );
@@ -2504,7 +2537,7 @@ const addXp = useCallback((amount: number) => {
     }
   }, [lastQuestsRefreshDate]); // Убрали npcQuests из массива зависимостей, используя функциональное обновление setNpcQuests
 
-  // Apply Cloud Save from Firestore
+// Apply Cloud Save from Firestore
   const applyCloudSave = useCallback((data: CloudSavePayload) => {
     if (data.coins !== undefined) setCoins(data.coins);
     if (data.gems !== undefined) setGems(data.gems);
@@ -2552,6 +2585,14 @@ const addXp = useCallback((amount: number) => {
     if (data.lastQuestsRefreshDate) setLastQuestsRefreshDate(data.lastQuestsRefreshDate);
     if (data.playerGifts && data.playerGifts.length > 0) setPlayerGifts(data.playerGifts);
     if (data.playerVisitLogs && data.playerVisitLogs.length > 0) setPlayerVisitLogs(data.playerVisitLogs);
+
+    // --- ДОБАВЛЕНО: Загрузка прогресса Осеннего Субботника ---
+    if (data.subbotnikPoints !== undefined) setSubbotnikPoints(data.subbotnikPoints);
+    if (data.isSubbotnikPremium !== undefined) setIsSubbotnikPremium(data.isSubbotnikPremium);
+    if (data.claimedFreePass) setClaimedFreePass(data.claimedFreePass);
+    if (data.claimedPremiumPass) setClaimedPremiumPass(data.claimedPremiumPass);
+    // ---------------------------------------------------------
+
     showFloating('☁️ Прогресс загружен из облака!', 'text-emerald-300');
   }, [showFloating]);
 
@@ -2610,6 +2651,10 @@ const addXp = useCallback((amount: number) => {
     lastQuestsRefreshDate,
     playerGifts,
     playerVisitLogs,
+	subbotnikPoints,
+    isSubbotnikPremium,
+    claimedFreePass,
+    claimedPremiumPass,
   ]);
 
   // Reset Game
@@ -2633,7 +2678,9 @@ const addXp = useCallback((amount: number) => {
 
   return {
     coins,
+	setCoins,
     gems,
+	setGems,
     level,
     xp,
     xpToNext: LEVEL_REQUIREMENTS[level] || level * 1000,
@@ -2663,6 +2710,7 @@ const addXp = useCallback((amount: number) => {
     trees,
     orders,
     inventory,
+	setInventory,
     barnCapacity,
     barnUsed,
     achievements,
@@ -2705,7 +2753,9 @@ const addXp = useCallback((amount: number) => {
     addFishingReward,
     changeWeather,
     purchasedDecorations,
+	setPurchasedDecorations,
     placedDecorations,
+	setPlacedDecorations,
     buyDecoration,
     togglePlaceDecoration,
     interactWithPlacedDecoration,
@@ -2732,5 +2782,13 @@ const addXp = useCallback((amount: number) => {
     startHorseRide,
     speedUpHorseRide,
     collectHorseRideReward,
+	subbotnikPoints,
+    setSubbotnikPoints,
+    isSubbotnikPremium,
+    setIsSubbotnikPremium,
+    claimedFreePass,
+    setClaimedFreePass,
+    claimedPremiumPass,
+    setClaimedPremiumPass,
   };
 }
