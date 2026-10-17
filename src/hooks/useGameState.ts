@@ -223,11 +223,14 @@ export function useGameState() {
   const [purchasedDecorations, setPurchasedDecorations] = useState<string[]>(['flower_arch']);
   const [placedDecorations, setPlacedDecorations] = useState<string[]>(['flower_arch']);
 
-  // Subbotnik Seasonal Pass State
-  const [subbotnikPoints, setSubbotnikPoints] = useState<number>(120);
-  const [isSubbotnikPremium, setIsSubbotnikPremium] = useState<boolean>(false);
-  const [claimedFreePass, setClaimedFreePass] = useState<number[]>([]);
-  const [claimedPremiumPass, setClaimedPremiumPass] = useState<number[]>([]);
+	// Subbotnik Seasonal Pass State
+	const [subbotnikPoints, setSubbotnikPoints] = useState<number>(120);
+	const [isSubbotnikPremium, setIsSubbotnikPremium] = useState<boolean>(false);
+
+	// Изменено на множественное число (Passes / Rewards)
+	const [claimedFreePasses, setClaimedFreePasses] = useState<number[]>([]);
+	const [claimedPremiumPasses, setClaimedPremiumPasses] = useState<number[]>([]);
+
 
   // Farmer's Journal (Дневник Фермера) & NPC Quests
   const [journalEntries, setJournalEntries] = useState<FarmerJournalEntry[]>(() =>
