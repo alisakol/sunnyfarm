@@ -30,7 +30,7 @@ interface FarmerJournalModalProps {
   onOpenDecorShop?: () => void;
 }
 
-type FilterTab = 'all' | 'level_up' | 'rare_purchase' | 'quest_completed';
+type FilterTab = 'all' | 'level_up' | 'rare_purchase' | 'quest_completed' | 'artifact_found';
 
 const ENTRIES_PER_PAGE = 3;
 
@@ -65,10 +65,12 @@ export const FarmerJournalModal: React.FC<FarmerJournalModalProps> = ({
     const levelCount = entries.filter((e) => e.type === 'level_up').length;
     const purchasesCount = entries.filter((e) => e.type === 'rare_purchase').length;
     const completedQuestsCount = entries.filter((e) => e.type === 'quest_completed').length;
+    const artifactsCount = entries.filter((e) => e.type === 'artifact_found').length;
     return {
       levelCount,
       purchasesCount,
       completedQuestsCount,
+      artifactsCount,
       totalEntries: entries.length,
     };
   }, [entries]);
@@ -188,6 +190,19 @@ export const FarmerJournalModal: React.FC<FarmerJournalModalProps> = ({
             <Award className="w-3.5 h-3.5 text-purple-800" />
             <span>Квесты</span>
             <span className="text-[10px] opacity-75">({stats.completedQuestsCount})</span>
+          </button>
+
+          <button
+            onClick={() => handleFilterClick('artifact_found')}
+            className={`flex items-center gap-1 px-2 py-1 rounded-t-lg text-xs font-semibold transition-all cursor-pointer shrink-0 border-b-2 ${
+              activeFilter === 'artifact_found'
+                ? 'bg-[#f7eedb] text-[#3e240c] border-[#8b4513] shadow-md font-bold scale-102'
+                : 'bg-[#3b200d] text-[#c9a777] border-transparent hover:bg-[#4d2c14]'
+            }`}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+            <span>Реликвии</span>
+            <span className="text-[10px] opacity-75">({stats.artifactsCount})</span>
           </button>
         </div>
 
@@ -343,7 +358,9 @@ export const FarmerJournalModal: React.FC<FarmerJournalModalProps> = ({
                         ? 'Хроника Развития & Уровней'
                         : activeFilter === 'rare_purchase'
                         ? 'Редкие Приобретения Декора'
-                        : 'Завершённые Сложные Квесты'}
+                        : activeFilter === 'quest_completed'
+                        ? 'Завершённые Сложные Квесты'
+                        : 'Древние Реликвии Долины'}
                     </h3>
                   </div>
                   <span className="text-[11px] font-serif text-[#78532f] italic">
@@ -361,7 +378,9 @@ export const FarmerJournalModal: React.FC<FarmerJournalModalProps> = ({
                         ? 'Получайте опыт на полях и повышайте уровень, чтобы открыть новые страницы!'
                         : activeFilter === 'rare_purchase'
                         ? 'Приобретайте редкие и легендарные украшения в Магазине Декора!'
-                        : 'Выполняйте сложные задания приезжих NPC, чтобы запечатлеть свои подвиги!'}
+                        : activeFilter === 'quest_completed'
+                        ? 'Выполняйте сложные задания приезжих NPC, чтобы запечатлеть свои подвиги!'
+                        : 'Отправляйтесь в ежедневный «Поиск сокровищ» с компасом-радаром, чтобы найти древние реликвии!'}
                     </p>
                   </div>
                 ) : (

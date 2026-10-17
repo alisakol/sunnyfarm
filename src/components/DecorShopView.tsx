@@ -300,6 +300,7 @@ export const DecorShopView: React.FC<DecorShopViewProps> = ({
 
                   {/* Action Bar */}
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-stone-800/80 mt-auto">
+                    {/* Price or Level Requirement */}
                     <div className="flex items-center gap-2">
                       {!isOwned ? (
                         isLevelLocked ? (
@@ -336,6 +337,7 @@ export const DecorShopView: React.FC<DecorShopViewProps> = ({
                       )}
                     </div>
 
+                    {/* Action Buttons */}
                     <div>
                       {!isOwned ? (
                         <button

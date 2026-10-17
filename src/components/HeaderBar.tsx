@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Settings, Sparkles, Cloud, BookOpen, Scroll, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Settings, Sparkles, Cloud, BookOpen, Scroll, ChevronLeft, ChevronRight, Compass } from 'lucide-react';
 import { SeasonId, WeatherType } from '../types/game';
 
 interface HeaderBarProps {
@@ -30,6 +30,9 @@ interface HeaderBarProps {
   onOpenRecipeBook?: () => void;
   onOpenRealFriends?: () => void;
   onOpenStables?: () => void;
+  onOpenTreasureHunt?: () => void;
+  treasureHuntCount?: number;
+  isTreasureHuntAvailable?: boolean;
   realFriendsCount?: number;
 }
 
@@ -62,6 +65,9 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
   onOpenRecipeBook,
   onOpenRealFriends,
   onOpenStables,
+  onOpenTreasureHunt,
+  treasureHuntCount = 0,
+  isTreasureHuntAvailable = false,
 }) => {
   const xpPercent = Math.min(100, Math.round((xp / (xpToNext || 1)) * 100));
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -210,6 +216,32 @@ export const HeaderBar: React.FC<HeaderBarProps> = ({
             >
               <span className="text-xs leading-none">🗺️</span>
               <span className="text-[11px] font-bold text-teal-200 hidden xs:inline whitespace-nowrap">Карта</span>
+            </button>
+          )}
+
+          {/* Treasure Hunt Button (Поиск сокровищ) */}
+          {onOpenTreasureHunt && (
+            <button
+              onClick={onOpenTreasureHunt}
+              className={`relative px-2 py-1 rounded-lg border shadow-md transition-transform active:scale-95 cursor-pointer flex items-center gap-1 shrink-0 ${
+                isTreasureHuntAvailable
+                  ? 'bg-gradient-to-r from-[#4a2608] via-[#63330b] to-[#4a2608] border-amber-400 text-amber-200 hover:border-amber-300 ring-1 ring-amber-400/50'
+                  : 'bg-amber-950/70 border-amber-800/60 text-amber-300 hover:border-amber-500'
+              }`}
+              title="Поиск сокровищ: ежедневные 5 сундуков, компас-радар и древние реликвии"
+            >
+              <Compass className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-[11px] font-bold text-amber-200 hidden xs:inline whitespace-nowrap">Сокровища</span>
+              {treasureHuntCount < 5 ? (
+                <span className="min-w-[14px] h-3.5 px-1 rounded-full bg-amber-500 text-[9px] font-bold text-stone-950 flex items-center justify-center border border-white leading-none shadow-xs font-mono">
+                  {5 - treasureHuntCount}
+                </span>
+              ) : (
+                <span className="text-[10px] text-emerald-400 font-bold">✓</span>
+              )}
+              {isTreasureHuntAvailable && (
+                <span className="w-2 h-2 rounded-full bg-amber-400 border border-stone-900 animate-ping" />
+              )}
             </button>
           )}
 

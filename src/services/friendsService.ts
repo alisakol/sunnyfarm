@@ -10,7 +10,7 @@ import {
   onSnapshot,
   Unsubscribe,
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from './firebase';
+import { auth, db, handleFirestoreError, OperationType } from './firebase';
 import { NeighborFarm, PlayerGift, PlayerVisitLog } from '../types/game';
 
 export interface FirestoreUserProfile {
@@ -44,6 +44,9 @@ export async function syncUserProfile(
   uid: string,
   profile: Partial<FirestoreUserProfile>
 ): Promise<void> {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    return;
+  }
   const userPath = `users/${uid}`;
   try {
     const userRef = doc(db, 'users', uid);
@@ -65,6 +68,9 @@ export async function syncUserProfile(
  * Fetch all registered real players from Firestore
  */
 export async function fetchCommunityPlayers(currentUid?: string): Promise<FirestoreUserProfile[]> {
+  if (!auth.currentUser) {
+    return [];
+  }
   const usersPath = 'users';
   try {
     const usersCol = collection(db, 'users');
@@ -93,6 +99,10 @@ export function subscribeToCommunityPlayers(
   currentUid: string | undefined,
   onPlayers: (players: FirestoreUserProfile[]) => void
 ): Unsubscribe {
+  if (!auth.currentUser) {
+    onPlayers([]);
+    return () => {};
+  }
   const usersCol = collection(db, 'users');
   const q = query(usersCol, limit(50));
 
@@ -119,6 +129,9 @@ export function subscribeToCommunityPlayers(
  * Fetch the user's friend list from Firestore
  */
 export async function fetchUserFriends(uid: string): Promise<FirestoreFriend[]> {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    return [];
+  }
   const friendsPath = `users/${uid}/friends`;
   try {
     const friendsCol = collection(db, 'users', uid, 'friends');
@@ -141,6 +154,10 @@ export function subscribeToUserFriends(
   uid: string,
   onFriends: (friends: FirestoreFriend[]) => void
 ): Unsubscribe {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    onFriends([]);
+    return () => {};
+  }
   const friendsCol = collection(db, 'users', uid, 'friends');
 
   return onSnapshot(
@@ -172,6 +189,9 @@ export async function addFriend(
     level: number;
   }
 ): Promise<boolean> {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    return false;
+  }
   const friendPath = `users/${uid}/friends/${friend.uid}`;
   try {
     const friendRef = doc(db, 'users', uid, 'friends', friend.uid);
@@ -195,6 +215,9 @@ export async function addFriend(
  * Remove a friend from the user's friends list
  */
 export async function removeFriend(uid: string, friendUid: string): Promise<boolean> {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    return false;
+  }
   const friendPath = `users/${uid}/friends/${friendUid}`;
   try {
     const friendRef = doc(db, 'users', uid, 'friends', friendUid);
@@ -229,7 +252,7 @@ export function convertPlayerToNeighborFarm(
     ownerAvatar,
     level: lvl,
     reputation: player.reputation || 10,
-    //bio: player.bio || 'Привет! Я фермер, и я развиваю свою солнечную ферму.',
+    bio: player.bio || 'Привет! Я настоящий игрок из Google AI Studio, развиваю свою солнечную ферму.',
     specialty: player.specialty || (lvl >= 4 ? 'Органическое земледелие и выпечка' : 'Свежее фермерское молоко и клубника'),
     coverEmoji: '✨',
     cropsPreview: [
@@ -314,6 +337,9 @@ export async function sendGiftToRealPlayer(
     note: string;
   }
 ): Promise<boolean> {
+  if (!auth.currentUser || auth.currentUser.uid !== sender.uid) {
+    return false;
+  }
   const giftId = `gift_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const giftPath = `users/${recipientUid}/gifts/${giftId}`;
   const now = new Date();
@@ -378,6 +404,10 @@ export function subscribeToUserGifts(
   uid: string,
   onGifts: (gifts: PlayerGift[]) => void
 ): Unsubscribe {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    onGifts([]);
+    return () => {};
+  }
   const giftsCol = collection(db, 'users', uid, 'gifts');
 
   return onSnapshot(
@@ -423,6 +453,9 @@ export async function claimGiftInFirestore(
   uid: string,
   giftId: string
 ): Promise<boolean> {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    return false;
+  }
   const giftPath = `users/${uid}/gifts/${giftId}`;
   try {
     const giftRef = doc(db, 'users', uid, 'gifts', giftId);
@@ -441,6 +474,10 @@ export function subscribeToUserVisits(
   uid: string,
   onVisits: (visits: PlayerVisitLog[]) => void
 ): Unsubscribe {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    onVisits([]);
+    return () => {};
+  }
   const visitsCol = collection(db, 'users', uid, 'visits');
 
   return onSnapshot(
@@ -482,6 +519,9 @@ export async function claimVisitBonusInFirestore(
   uid: string,
   visitId: string
 ): Promise<boolean> {
+  if (!auth.currentUser || auth.currentUser.uid !== uid) {
+    return false;
+  }
   const visitPath = `users/${uid}/visits/${visitId}`;
   try {
     const visitRef = doc(db, 'users', uid, 'visits', visitId);
@@ -505,6 +545,9 @@ export async function recordWaterHelpRealPlayer(
   },
   recipientUid: string
 ): Promise<boolean> {
+  if (!auth.currentUser || auth.currentUser.uid !== visitor.uid) {
+    return false;
+  }
   const visitId = `visit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const visitPath = `users/${recipientUid}/visits/${visitId}`;
   const timestampStr = new Date().toLocaleDateString('ru-RU', {

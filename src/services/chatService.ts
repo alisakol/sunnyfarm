@@ -8,7 +8,7 @@ import {
   onSnapshot,
   Unsubscribe,
 } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from './firebase';
+import { auth, db, handleFirestoreError, OperationType } from './firebase';
 
 export interface ChatMessage {
   id: string;
@@ -50,6 +50,9 @@ export async function sendChatMessage(
   recipientUid: string,
   text: string
 ): Promise<boolean> {
+  if (!auth.currentUser || auth.currentUser.uid !== sender.uid) {
+    return false;
+  }
   const cleanText = text.trim();
   if (!cleanText) return false;
 
@@ -104,6 +107,10 @@ export function subscribeToChatMessages(
   chatId: string,
   onMessages: (messages: ChatMessage[]) => void
 ): Unsubscribe {
+  if (!auth.currentUser) {
+    onMessages([]);
+    return () => {};
+  }
   const messagesCol = collection(db, 'chats', chatId, 'messages');
   const q = query(messagesCol, orderBy('timestamp', 'asc'), limit(100));
 

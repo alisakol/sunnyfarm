@@ -68,6 +68,8 @@ export const CROPS: Record<string, CropConfig> = {
     xp: 60,
     minLevel: 5,
     description: 'Яркий солнечный цветок. Привлекает пчёл на пасеку!',
+    season: 'summer',
+    seasonalBonusDescription: 'Летний цветок: +35% монет летом',
   },
   watermelon: {
     id: 'watermelon',
@@ -800,7 +802,7 @@ export const RECIPES: Recipe[] = [
     id: 'peach_jam',
     name: 'Персиковый Конфитюр',
     emoji: '🍑',
-    buildingId: 'jam_maker',
+    buildingId: 'bakery',
     craftTime: 36,
     ingredients: [
       { itemId: 'peach', count: 2 },
@@ -811,14 +813,14 @@ export const RECIPES: Recipe[] = [
     sellPrice: 165,
     xp: 90,
     minLevel: 3,
-    category: 'preserves',
+    category: 'baking',
     description: 'Густое золотистое варенье из сладких южных персиков и пасечного мёда.',
   },
   {
     id: 'winter_glaze',
     name: 'Морозный Морс',
     emoji: '🧃',
-    buildingId: 'juice_press',
+    buildingId: 'bakery',
     craftTime: 28,
     ingredients: [
       { itemId: 'winterberry', count: 2 },
@@ -829,7 +831,7 @@ export const RECIPES: Recipe[] = [
     sellPrice: 150,
     xp: 80,
     minLevel: 3,
-    category: 'drinks',
+    category: 'baking',
     description: 'Бодрящий целебный морс из морозных зимних ягод с мёдом.',
   },
   // High Level Master Crafts (Уровни 11 - 20)
@@ -837,7 +839,7 @@ export const RECIPES: Recipe[] = [
     id: 'royal_honey_cake',
     name: 'Королевский Медовик',
     emoji: '🎂',
-    buildingId: 'confectionery',
+    buildingId: 'bakery',
     craftTime: 48,
     ingredients: [
       { itemId: 'flour', count: 2 },
@@ -850,7 +852,7 @@ export const RECIPES: Recipe[] = [
     sellPrice: 280,
     xp: 140,
     minLevel: 11,
-    category: 'sweets',
+    category: 'baking',
     description: 'Многослойный королевский торт на пасечном меду с лесным фундуком и взбитыми сливками.',
   },
   {
@@ -1905,17 +1907,67 @@ export const INITIAL_ACHIEVEMENTS = [
 ];
 
 export const LEVEL_REQUIREMENTS = [
-  0,     // Level 1
-  50,    // Level 2
-  140,   // Level 3
-  300,   // Level 4
-  550,   // Level 5
-  900,   // Level 6
-  1400,  // Level 7
-  2100,  // Level 8
-  3000,  // Level 9
-  4200,  // Level 10
+  0,      // Level 1
+  50,     // Level 2
+  140,    // Level 3
+  300,    // Level 4
+  550,    // Level 5
+  900,    // Level 6
+  1400,   // Level 7
+  2100,   // Level 8
+  3000,   // Level 9
+  4200,   // Level 10
+  5600,   // Level 11
+  7200,   // Level 12
+  9000,   // Level 13
+  11000,  // Level 14
+  13500,  // Level 15
+  16500,  // Level 16
+  20000,  // Level 17
+  24000,  // Level 18
+  28500,  // Level 19
+  33500,  // Level 20
+  39000,  // Level 21
+  45000,  // Level 22
+  51500,  // Level 23
+  58500,  // Level 24
+  66000,  // Level 25
+  74000,  // Level 26
+  82500,  // Level 27
+  91500,  // Level 28
+  101000, // Level 29
+  111000, // Level 30
+  122000, // Level 31
+  134000, // Level 32
+  147000, // Level 33
+  161000, // Level 34
+  176000, // Level 35
+  192000, // Level 36
+  209000, // Level 37
+  227000, // Level 38
+  246000, // Level 39
+  266000, // Level 40
+  288000, // Level 41
+  311000, // Level 42
+  335000, // Level 43
+  360000, // Level 44
+  387000, // Level 45
+  416000, // Level 46
+  447000, // Level 47
+  480000, // Level 48
+  515000, // Level 49
+  552000, // Level 50
 ];
+
+export const MAX_LEVEL = 50;
+
+export function getXpRequiredForLevel(currentLevel: number): number {
+  if (currentLevel < LEVEL_REQUIREMENTS.length) {
+    return LEVEL_REQUIREMENTS[currentLevel] || (currentLevel * 1200);
+  }
+  // Formula for levels beyond 50:
+  return Math.floor(currentLevel * currentLevel * 220 + currentLevel * 600);
+}
 
 export const DAILY_REWARDS_CONFIG = [
   {

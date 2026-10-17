@@ -194,6 +194,7 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                   const isRecipeUnlocked = level >= recipe.minLevel;
                   const queueFull = building.queue.length >= building.maxSlots;
 
+                  // Check ingredients
                   let hasAllIngredients = true;
                   const ingredientsCheck = recipe.ingredients.map((ing) => {
                     const have = inventory[ing.itemId] || 0;
@@ -225,6 +226,7 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                             </span>
                           </div>
 
+                          {/* Ingredients list */}
                           <div className="flex flex-wrap items-center gap-1 mt-1 text-[10px]">
                             {ingredientsCheck.map((ing, i) => {
                               let ingLabel = ing.itemId;
@@ -273,6 +275,7 @@ export const BuildingsView: React.FC<BuildingsViewProps> = ({
                         </div>
                       </div>
 
+                      {/* Craft Button */}
                       <div>
                         {isRecipeUnlocked ? (
                           <button

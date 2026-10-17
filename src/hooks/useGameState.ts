@@ -27,6 +27,9 @@ import {
   PlayerHorse,
   ActiveHorseRide,
   HorseBreedId,
+  TreasureChest,
+  TreasureHuntState,
+  FarmArtifact,
 } from '../types/game';
 import {
   ANIMALS,
@@ -48,7 +51,7 @@ import { sound } from '../utils/audio';
 import { vibrateLight, vibrateSuccess, vibrateLevelUp } from '../utils/haptics';
 import { CloudSavePayload } from '../services/cloudSync';
 import { DECORATIONS_CATALOG } from '../utils/decorationsData';
-import { INITIAL_NPC_QUESTS, generateDailyQuestsRefresh } from '../utils/questsData';
+import { INITIAL_NPC_QUESTS, generateDailyQuestsRefresh, generateDynamicNpcQuest } from '../utils/questsData';
 import {
   INITIAL_PLAYER_HORSES,
   HORSE_BREEDS,
@@ -58,6 +61,7 @@ import {
   calculateHorseStats,
 } from '../utils/stablesData';
 import { createInitialJournalEntries, formatJournalDate } from '../utils/journalData';
+import { generateDailyTreasureChests, ANCIENT_ARTIFACTS } from '../utils/treasureData';
 
 const STORAGE_KEY = 'SUNNY_FARM_DATA_V2';
 
@@ -107,14 +111,6 @@ export function useGameState() {
   const [xp, setXp] = useState<number>(0);
   const [newLevelUnlocked, setNewLevelUnlocked] = useState<number | null>(null);
 
-  // --- СОСТОЯНИЯ ОСЕННЕГО СУББОТНИКА ---
-  const [subbotnikPoints, setSubbotnikPoints] = useState<number>(0);
-  const [isSubbotnikPremium, setIsSubbotnikPremium] = useState<boolean>(false);
-  const [claimedFreePass, setClaimedFreePass] = useState<number[]>([]);
-  const [claimedPremiumPass, setClaimedPremiumPass] = useState<number[]>([]);
-
-  // ... дальше идет ваш остальной код (стейты инвентаря, полей и т.д.) ...
-
   // Daily reward system
   const [lastDailyClaimDate, setLastDailyClaimDate] = useState<string | null>(null);
   const [dailyStreak, setDailyStreak] = useState<number>(1);
@@ -143,20 +139,23 @@ export function useGameState() {
     apple: 3,
   });
 
-    // Farm Plots (Увеличено до 24 грядок, 6 открыто изначально)
+  // Farm Plots (36 plots total, 4 initial)
   const [plots, setPlots] = useState<FarmPlot[]>(() => {
-    return Array.from({ length: 24 }, (_, i) => ({
-      id: i,
-      unlocked: i < 6, // Первые 6 грядок доступны сразу
-      unlockLevel: Math.floor(i / 2) + 1, // Требуемый уровень растет каждые 2 грядки
-      unlockCost: (i + 1) * 50, // Цена плавно увеличивается с каждой грядкой
-      cropId: null,
-      plantedAt: null,
-      watered: false,
-      fertilized: false,
-    }));
+    return Array.from({ length: 36 }, (_, i) => {
+      const unlockLevel =
+        i < 4 ? 1 : i < 12 ? Math.floor(i / 2) + 1 : i < 20 ? Math.floor(i / 2) + 1 : 11 + (i - 19) * 2;
+      return {
+        id: i,
+        unlocked: i < 4,
+        unlockLevel,
+        unlockCost: (i + 1) * 45,
+        cropId: null,
+        plantedAt: null,
+        watered: false,
+        fertilized: false,
+      };
+    });
   });
-
 
   // Stables & Horses System
   const [playerHorses, setPlayerHorses] = useState<PlayerHorse[]>(INITIAL_PLAYER_HORSES);
@@ -167,6 +166,20 @@ export function useGameState() {
     'saddle_village',
     'horseshoe_iron',
   ]);
+
+  // Daily Treasure Hunt System (5 chests per day, compass radar & ancient artifacts)
+  const [treasureHuntState, setTreasureHuntState] = useState<TreasureHuntState>(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const initialChests = generateDailyTreasureChests(1, []);
+    return {
+      lastHuntDate: todayStr,
+      currentStep: 1,
+      totalChestsFound: 0,
+      unlockedArtifactIds: [],
+      activeChests: initialChests,
+      compassScansUsedToday: 0,
+    };
+  });
 
   // Animals
   const [animals, setAnimals] = useState<AnimalState[]>([
@@ -209,6 +222,12 @@ export function useGameState() {
   // Farm decorations & aesthetics
   const [purchasedDecorations, setPurchasedDecorations] = useState<string[]>(['flower_arch']);
   const [placedDecorations, setPlacedDecorations] = useState<string[]>(['flower_arch']);
+
+  // Subbotnik Seasonal Pass State
+  const [subbotnikPoints, setSubbotnikPoints] = useState<number>(120);
+  const [isSubbotnikPremium, setIsSubbotnikPremium] = useState<boolean>(false);
+  const [claimedFreePass, setClaimedFreePass] = useState<number[]>([]);
+  const [claimedPremiumPass, setClaimedPremiumPass] = useState<number[]>([]);
 
   // Farmer's Journal (Дневник Фермера) & NPC Quests
   const [journalEntries, setJournalEntries] = useState<FarmerJournalEntry[]>(() =>
@@ -303,16 +322,10 @@ export function useGameState() {
         if (parsed.xp !== undefined) setXp(parsed.xp);
         if (parsed.barnCapacity !== undefined) setBarnCapacity(parsed.barnCapacity);
         if (parsed.inventory) setInventory(parsed.inventory);
-		// --- ДОБАВИТЬ ЭТИ 4 СТРОЧКИ ДЛЯ СУББОТНИКА ---
-        if (parsed.subbotnikPoints !== undefined) setSubbotnikPoints(parsed.subbotnikPoints);
-        if (parsed.isSubbotnikPremium !== undefined) setIsSubbotnikPremium(parsed.isSubbotnikPremium);
-        if (parsed.claimedFreePass) setClaimedFreePass(parsed.claimedFreePass);
-        if (parsed.claimedPremiumPass) setClaimedPremiumPass(parsed.claimedPremiumPass);
-        // ---------------------------------------------
         if (parsed.plots) {
-          if (parsed.plots.length < 24) {
+          if (parsed.plots.length < 36) {
             const existingPlots = [...parsed.plots];
-            for (let i = existingPlots.length; i < 24; i++) {
+            for (let i = existingPlots.length; i < 36; i++) {
               const unlockLevel =
                 i < 4 ? 1 : i < 12 ? Math.floor(i / 2) + 1 : i < 20 ? Math.floor(i / 2) + 1 : 11 + (i - 19) * 2;
               existingPlots.push({
@@ -328,11 +341,9 @@ export function useGameState() {
             }
             setPlots(existingPlots);
           } else {
-            // ✨ ИСПРАВЛЕНО: принудительно отсекаем всё, что выходит за лимит в 24 грядки
-            setPlots(parsed.plots.slice(0, 24));
+            setPlots(parsed.plots);
           }
         }
-
         if (parsed.animals) setAnimals(parsed.animals);
         if (parsed.buildings) {
           const existingBuildingIds = new Set(parsed.buildings.map((b: any) => b.id));
@@ -373,15 +384,28 @@ export function useGameState() {
           }));
 
           // Merge any brand new quests from INITIAL_NPC_QUESTS
-          //const existingIds = new Set(migratedQuests.map((q) => q.id));
-          //const newQuestsToAdd = INITIAL_NPC_QUESTS.filter((template) => !existingIds.has(template.id));
-          //setNpcQuests([...migratedQuests, ...newQuestsToAdd]);
-		  // Убрали авто-слияние, просто загружаем сохраненные квесты:
-          setNpcQuests(migratedQuests);
+          const existingIds = new Set(migratedQuests.map((q) => q.id));
+          const newQuestsToAdd = INITIAL_NPC_QUESTS.filter((template) => !existingIds.has(template.id));
+          setNpcQuests([...migratedQuests, ...newQuestsToAdd]);
         }
         if (parsed.lastQuestsRefreshDate) setLastQuestsRefreshDate(parsed.lastQuestsRefreshDate);
         if (parsed.playerGifts && parsed.playerGifts.length > 0) setPlayerGifts(parsed.playerGifts);
         if (parsed.playerVisitLogs && parsed.playerVisitLogs.length > 0) setPlayerVisitLogs(parsed.playerVisitLogs);
+        if (parsed.treasureHuntState) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          if (parsed.treasureHuntState.lastHuntDate !== todayStr) {
+            setTreasureHuntState({
+              lastHuntDate: todayStr,
+              currentStep: 1,
+              totalChestsFound: parsed.treasureHuntState.totalChestsFound || 0,
+              unlockedArtifactIds: parsed.treasureHuntState.unlockedArtifactIds || [],
+              activeChests: generateDailyTreasureChests(parsed.level || 1, parsed.treasureHuntState.unlockedArtifactIds || []),
+              compassScansUsedToday: 0,
+            });
+          } else {
+            setTreasureHuntState(parsed.treasureHuntState);
+          }
+        }
         if (parsed.lastDailyClaimDate) {
           setLastDailyClaimDate(parsed.lastDailyClaimDate);
           // Check streak continuity: if last claim was earlier than yesterday, streak resets to 1
@@ -398,6 +422,10 @@ export function useGameState() {
             setDailyStreak(1);
           }
         }
+        if (parsed.subbotnikPoints !== undefined) setSubbotnikPoints(parsed.subbotnikPoints);
+        if (parsed.isSubbotnikPremium !== undefined) setIsSubbotnikPremium(parsed.isSubbotnikPremium);
+        if (parsed.claimedFreePass) setClaimedFreePass(parsed.claimedFreePass);
+        if (parsed.claimedPremiumPass) setClaimedPremiumPass(parsed.claimedPremiumPass);
       } else {
         // Init default orders
         setOrders([generateOrder('ord_1'), generateOrder('ord_2'), generateOrder('ord_3')]);
@@ -407,7 +435,7 @@ export function useGameState() {
     }
   }, []);
 
- // Save to LocalStorage
+  // Save to LocalStorage
   useEffect(() => {
     try {
       const dataToSave = {
@@ -439,8 +467,7 @@ export function useGameState() {
         playerHorses,
         activeHorseRides,
         unlockedTackIds,
-
-        // --- ДОБАВИТЬ СЮДА В ОБЪЕКТ ---
+        treasureHuntState,
         subbotnikPoints,
         isSubbotnikPremium,
         claimedFreePass,
@@ -450,70 +477,66 @@ export function useGameState() {
     } catch {
       // ignore
     }
-  }, [
-    coins, gems, level, xp, lastDailyClaimDate, dailyStreak, barnCapacity, inventory, plots, animals, 
-    buildings, trees, orders, achievements, stats, neighbors, seasonMode, lastSeasonalSurpriseDate, 
-    purchasedDecorations, placedDecorations, journalEntries, npcQuests, lastQuestsRefreshDate, 
-    playerGifts, playerVisitLogs, playerHorses, activeHorseRides, unlockedTackIds,
-    
-    // --- И ДОБАВИТЬ В КОНЕЦ МАССИВА ЗАВИСИМОСТЕЙ ---
-    subbotnikPoints, isSubbotnikPremium, claimedFreePass, claimedPremiumPass
-  ]);
+  }, [coins, gems, level, xp, lastDailyClaimDate, dailyStreak, barnCapacity, inventory, plots, animals, buildings, trees, orders, achievements, stats, neighbors, seasonMode, lastSeasonalSurpriseDate, purchasedDecorations, placedDecorations, journalEntries, npcQuests, lastQuestsRefreshDate, playerGifts, playerVisitLogs, playerHorses, activeHorseRides, unlockedTackIds, treasureHuntState, subbotnikPoints, isSubbotnikPremium, claimedFreePass, claimedPremiumPass]);
 
-  // XP & Level-up system (Железный сброс в 0 через линейный IF)
-const addXp = useCallback((amount: number) => {
-  setXp((prevXp) => {
-    const nextLevelRequirement = LEVEL_REQUIREMENTS[level] || level * 1000;
-    const newTotal = prevXp + amount;
+  // XP & Level-up system (supports all levels up to MAX_LEVEL)
+  const addXp = useCallback((amount: number) => {
+    setXp((prevXp) => {
+      let currentLevel = level;
+      let newTotal = prevXp + amount;
+      let leveledUp = false;
+      let highestNewLevel = currentLevel;
 
-    // Если набрали достаточно опыта для ОДНОГО следующего уровня
-    if (newTotal >= nextLevelRequirement) {
-      const nextLvl = level + 1;
-      
-      // Меняем уровни и ресурсы напрямую
-      setLevel(nextLvl);
-      if (typeof setNewLevelUnlocked === 'function') setNewLevelUnlocked(nextLvl);
-      setGems((g) => g + 3);
-      setCoins((c) => c + nextLvl * 50);
+      while (currentLevel < MAX_LEVEL) {
+        const nextLevelRequirement = LEVEL_REQUIREMENTS[currentLevel] || (currentLevel * 1200);
+        if (newTotal >= nextLevelRequirement) {
+          newTotal -= nextLevelRequirement;
+          currentLevel += 1;
+          leveledUp = true;
+          highestNewLevel = currentLevel;
+        } else {
+          break;
+        }
+      }
 
-      // Эффекты
-      if (typeof sound?.playLevelUp === 'function') sound.playLevelUp();
-      if (typeof vibrateLevelUp === 'function') vibrateLevelUp();
+      if (leveledUp) {
+        const levelsGained = highestNewLevel - level;
+        setLevel(highestNewLevel);
+        setNewLevelUnlocked(highestNewLevel);
+        const rewardGems = levelsGained * 3;
+        const rewardCoins = highestNewLevel * 60 * levelsGained;
+        setGems((g) => g + rewardGems);
+        setCoins((c) => c + rewardCoins);
+        sound.playLevelUp();
+        vibrateLevelUp();
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 },
+        });
+        showFloating(`Уровень ${highestNewLevel}! +${rewardGems} 💎 +${rewardCoins} 🪙`, 'text-emerald-300');
 
-      confetti({
-        particleCount: 80,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
-
-      showFloating(`Уровень ${nextLvl}! +3 💎 +${nextLvl * 50} 🪙`, 'text-emerald-300');
-
-      // Запись в журнал
-      const nowObj = new Date();
-      setJournalEntries((prev) => [
-        {
-          id: `journal_lvl_${nextLvl}_${Date.now()}`,
-          type: 'level_up',
-          title: `Достигнут Уровень ${nextLvl}`,
-          description: `Фермер достиг ${nextLvl}-го уровня мастерства! Награда: +3 💎, +${nextLvl * 50} 🪙.`,
-          timestamp: nowObj.toISOString(),
-          formattedDate: formatJournalDate(nowObj),
-          icon: '🌟',
-          badge: `Уровень ${nextLvl}`,
-          levelNumber: nextLvl,
-          rewardsSummary: `+3 💎, +${nextLvl * 50} 🪙`,
-        },
-        ...prev,
-      ]);
-
-      // ЖЕСТКИЙ СБРОС: Возвращаем ровно 0 на новом уровне, весь излишек сгорает
-      return 0; 
-    }
-
-    // Если уровень не повысился, просто прибавляем опыт как обычно
-    return newTotal;
-  });
-}, [level, showFloating]); // <-- Обязательно добавляем level в зависимости, так как мы убрали сложный setLevel(prev => ...)
+        // Automatically record to Farmer's Journal
+        const nowObj = new Date();
+        setJournalEntries((prev) => [
+          {
+            id: `journal_lvl_${highestNewLevel}_${Date.now()}`,
+            type: 'level_up',
+            title: `Достигнут Уровень ${highestNewLevel}`,
+            description: `Фермер достиг ${highestNewLevel}-го уровня мастерства! Разблокированы новые возможности, наделы и награды: +${rewardGems} 💎, +${rewardCoins} 🪙.`,
+            timestamp: nowObj.toISOString(),
+            formattedDate: formatJournalDate(nowObj),
+            icon: '🌟',
+            badge: `Уровень ${highestNewLevel}`,
+            levelNumber: highestNewLevel,
+            rewardsSummary: `+${rewardGems} 💎, +${rewardCoins} 🪙`,
+          },
+          ...prev,
+        ]);
+      }
+      return newTotal;
+    });
+  }, [level, showFloating]);
 
   // Main 1-second game tick loop
   useEffect(() => {
@@ -2432,7 +2455,7 @@ const addXp = useCallback((amount: number) => {
     [inventory, npcQuests, showFloating]
   );
 
- // Complete NPC quest and claim unique rewards & decor
+  // Complete NPC quest and claim unique rewards & decor
   const completeNpcQuest = useCallback(
     (questId: string) => {
       const quest = npcQuests.find((q) => q.id === questId);
@@ -2448,17 +2471,28 @@ const addXp = useCallback((amount: number) => {
 
       // Mark completed
       const nowObj = new Date();
-      setNpcQuests((prev) =>
-        prev.map((q) => (q.id === questId ? { ...q, completed: true, completedAt: nowObj.toISOString() } : q))
-      );
+      // If daily active quests are low, automatically invite a new villager with a fresh quest!
+      const activeDaily = npcQuests.filter(
+        (q) => q.id !== questId && !q.completed && (!q.category || q.category === 'daily_npc')
+      ).length;
+
+      if (activeDaily < 3) {
+        const replacement = generateDynamicNpcQuest(level, [...npcQuests.map((q) => q.id), questId], effectiveSeason);
+        setNpcQuests((prev) => [
+          ...prev.map((q) => (q.id === questId ? { ...q, completed: true, completedAt: nowObj.toISOString() } : q)),
+          replacement,
+        ]);
+        showFloating(`Житель ${replacement.npcAvatar} ${replacement.npcName} уже спешит с новым поручением!`, 'text-sky-300');
+      } else {
+        setNpcQuests((prev) =>
+          prev.map((q) => (q.id === questId ? { ...q, completed: true, completedAt: nowObj.toISOString() } : q))
+        );
+      }
 
       // Grant rewards
       setCoins((c) => c + quest.rewards.coins);
       setGems((g) => g + quest.rewards.gems);
       addXp(quest.rewards.xp);
-
-      // --- ДОБАВЛЕНО: Начисление очков Осеннего Субботника ---
-      setSubbotnikPoints((prev) => prev + 25);
 
       // If quest grants unique decor item
       if (quest.rewards.decorItem) {
@@ -2502,9 +2536,9 @@ const addXp = useCallback((amount: number) => {
         spread: 90,
         origin: { y: 0.6 },
       });
-      showFloating(`Квест завершён! +25 🍂 очков Субботника!`, 'text-amber-300');
+      showFloating(`Квест «${quest.title}» триумфально завершён!`, 'text-amber-300');
     },
-    [addXp, npcQuests, showFloating]
+    [addXp, npcQuests, level, effectiveSeason, showFloating]
   );
 
   // Manual or Daily Refresh of NPC Quests (1 раз в день или по желанию игрока)
@@ -2515,7 +2549,7 @@ const addXp = useCallback((amount: number) => {
       return false;
     }
 
-    const refreshed = generateDailyQuestsRefresh(npcQuests);
+    const refreshed = generateDailyQuestsRefresh(npcQuests, level);
     setNpcQuests(refreshed);
     setLastQuestsRefreshDate(todayStr);
 
@@ -2524,20 +2558,175 @@ const addXp = useCallback((amount: number) => {
     confetti({ particleCount: 60, spread: 80, origin: { y: 0.5 } });
     showFloating('🌅 Новые ежедневные квесты от жителей долины!', 'text-emerald-300');
     return true;
-  }, [lastQuestsRefreshDate, npcQuests, showFloating]);
+  }, [lastQuestsRefreshDate, npcQuests, level, showFloating]);
+
+  // Generate a single new dynamic quest on demand from a random villager
+  const generateNewQuest = useCallback(() => {
+    const existingIds = npcQuests.map((q) => q.id);
+    const newQuest = generateDynamicNpcQuest(level, existingIds, effectiveSeason);
+    setNpcQuests((prev) => [...prev, newQuest]);
+
+    sound.playReward();
+    vibrateSuccess();
+    confetti({ particleCount: 50, spread: 75, origin: { y: 0.5 } });
+    showFloating(`Новое поручение: «${newQuest.title}» от ${newQuest.npcAvatar} ${newQuest.npcName}! 📜`, 'text-amber-300');
+    return newQuest;
+  }, [level, npcQuests, effectiveSeason, showFloating]);
+
+  // Daily Treasure Hunt Handlers
+  const discoverTreasureChest = useCallback((chestId: string) => {
+    setTreasureHuntState((prev) => {
+      const chest = prev.activeChests.find((c) => c.id === chestId);
+      if (!chest || chest.discovered) return prev;
+
+      sound.playSonarPing('found');
+      vibrateSuccess();
+      showFloating(`Тайник обнаружен: «${chest.name}»! 🗝️`, 'text-amber-300');
+
+      return {
+        ...prev,
+        activeChests: prev.activeChests.map((c) =>
+          c.id === chestId ? { ...c, discovered: true } : c
+        ),
+      };
+    });
+  }, [showFloating]);
+
+  const openTreasureChest = useCallback((chestId: string) => {
+    let claimedChest: TreasureChest | undefined;
+
+    setTreasureHuntState((prev) => {
+      const chestIndex = prev.activeChests.findIndex((c) => c.id === chestId);
+      if (chestIndex === -1) return prev;
+      const target = prev.activeChests[chestIndex];
+      if (target.opened) return prev;
+
+      claimedChest = target;
+      const isNewArtifact = !!(target.rewards.artifact && !prev.unlockedArtifactIds.includes(target.rewards.artifact.id));
+      const nextUnlockedArtifacts = isNewArtifact
+        ? [...prev.unlockedArtifactIds, target.rewards.artifact!.id]
+        : prev.unlockedArtifactIds;
+
+      const nextChests = prev.activeChests.map((c, i) =>
+        i === chestIndex ? { ...c, discovered: true, opened: true } : c
+      );
+
+      return {
+        ...prev,
+        totalChestsFound: prev.totalChestsFound + 1,
+        currentStep: Math.min(5, target.step + 1),
+        unlockedArtifactIds: nextUnlockedArtifacts,
+        activeChests: nextChests,
+      };
+    });
+
+    if (claimedChest) {
+      const targetChest = claimedChest as TreasureChest;
+      const { rewards, locationName } = targetChest;
+      // Coins, Gems, XP
+      if (rewards.coins > 0) setCoins((c) => c + rewards.coins);
+      if (rewards.gems > 0) setGems((g) => g + rewards.gems);
+      if (rewards.xp > 0) addXp(rewards.xp);
+
+      // Bonus item
+      if (rewards.bonusItem) {
+        setInventory((inv) => ({
+          ...inv,
+          [rewards.bonusItem!.id]: (inv[rewards.bonusItem!.id] || 0) + rewards.bonusItem!.count,
+        }));
+      }
+
+      // If discovered ancient artifact, add journal entry!
+      if (rewards.artifact) {
+        const nowObj = new Date();
+        const art = rewards.artifact;
+        const rarityBadge = art.rarity === 'legendary' ? 'Легенда' : art.rarity === 'epic' ? 'Эпик' : 'Реликвия';
+        setJournalEntries((prev) => [
+          {
+            id: `journal_art_${art.id}_${Date.now()}`,
+            type: 'artifact_found',
+            title: `Обретена реликвия: ${art.name}`,
+            description: `В ходе экспедиции на локации «${locationName}» найден древний артефакт: ${art.emoji} «${art.name}» (${rarityBadge}). Постоянный дар долины: ${art.perk}.`,
+            timestamp: nowObj.toISOString(),
+            formattedDate: formatJournalDate(nowObj),
+            icon: art.emoji,
+            badge: rarityBadge,
+            artifactId: art.id,
+            artifactName: art.name,
+            rewardsSummary: `+${rewards.gems} 💎, +${rewards.coins} 🪙, +${rewards.xp} XP`,
+          },
+          ...prev,
+        ]);
+        sound.playLevelUp();
+      }
+
+      // Feedback sound & animation
+      sound.playChestOpen();
+      vibrateSuccess();
+      confetti({
+        particleCount: 85,
+        spread: 90,
+        origin: { y: 0.6 },
+      });
+      showFloating(`Сундук открыт! +${rewards.gems} 💎 +${rewards.coins} 🪙`, 'text-yellow-300');
+    }
+  }, [addXp, showFloating]);
+
+  const useCompassScan = useCallback(() => {
+    setTreasureHuntState((prev) => ({
+      ...prev,
+      compassScansUsedToday: (prev.compassScansUsedToday || 0) + 1,
+    }));
+    sound.playSonarPing('hot');
+    vibrateLight();
+  }, []);
+
+  const refreshTreasureHuntDaily = useCallback((force = false) => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (!force && treasureHuntState.lastHuntDate === todayStr) {
+      showFloating('Экспедиция на сегодня уже активна! 🧭', 'text-amber-200');
+      return false;
+    }
+    const newChests = generateDailyTreasureChests(level, treasureHuntState.unlockedArtifactIds);
+    setTreasureHuntState((prev) => ({
+      lastHuntDate: todayStr,
+      currentStep: 1,
+      totalChestsFound: prev.totalChestsFound,
+      unlockedArtifactIds: prev.unlockedArtifactIds,
+      activeChests: newChests,
+      compassScansUsedToday: 0,
+    }));
+    sound.playReward();
+    vibrateSuccess();
+    confetti({ particleCount: 50, spread: 70, origin: { y: 0.5 } });
+    showFloating('🗺️ Новая карта сокровищ долины развернута!', 'text-emerald-300');
+    return true;
+  }, [level, treasureHuntState, showFloating]);
 
   // Automatic daily refresh check on load / day change
   useEffect(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     if (lastQuestsRefreshDate && lastQuestsRefreshDate !== todayStr) {
-      setNpcQuests((prevQuests) => generateDailyQuestsRefresh(prevQuests));
+      const refreshed = generateDailyQuestsRefresh(npcQuests, level);
+      setNpcQuests(refreshed);
       setLastQuestsRefreshDate(todayStr);
     } else if (!lastQuestsRefreshDate) {
       setLastQuestsRefreshDate(todayStr);
     }
-  }, [lastQuestsRefreshDate]); // Убрали npcQuests из массива зависимостей, используя функциональное обновление setNpcQuests
 
-// Apply Cloud Save from Firestore
+    if (treasureHuntState.lastHuntDate !== todayStr) {
+      setTreasureHuntState((prev) => ({
+        lastHuntDate: todayStr,
+        currentStep: 1,
+        totalChestsFound: prev.totalChestsFound || 0,
+        unlockedArtifactIds: prev.unlockedArtifactIds || [],
+        activeChests: generateDailyTreasureChests(level, prev.unlockedArtifactIds || []),
+        compassScansUsedToday: 0,
+      }));
+    }
+  }, [lastQuestsRefreshDate, treasureHuntState.lastHuntDate, level, npcQuests]);
+
+  // Apply Cloud Save from Firestore
   const applyCloudSave = useCallback((data: CloudSavePayload) => {
     if (data.coins !== undefined) setCoins(data.coins);
     if (data.gems !== undefined) setGems(data.gems);
@@ -2585,14 +2774,7 @@ const addXp = useCallback((amount: number) => {
     if (data.lastQuestsRefreshDate) setLastQuestsRefreshDate(data.lastQuestsRefreshDate);
     if (data.playerGifts && data.playerGifts.length > 0) setPlayerGifts(data.playerGifts);
     if (data.playerVisitLogs && data.playerVisitLogs.length > 0) setPlayerVisitLogs(data.playerVisitLogs);
-
-    // --- ДОБАВЛЕНО: Загрузка прогресса Осеннего Субботника ---
-    if (data.subbotnikPoints !== undefined) setSubbotnikPoints(data.subbotnikPoints);
-    if (data.isSubbotnikPremium !== undefined) setIsSubbotnikPremium(data.isSubbotnikPremium);
-    if (data.claimedFreePass) setClaimedFreePass(data.claimedFreePass);
-    if (data.claimedPremiumPass) setClaimedPremiumPass(data.claimedPremiumPass);
-    // ---------------------------------------------------------
-
+    if (data.treasureHuntState) setTreasureHuntState(data.treasureHuntState);
     showFloating('☁️ Прогресс загружен из облака!', 'text-emerald-300');
   }, [showFloating]);
 
@@ -2624,6 +2806,7 @@ const addXp = useCallback((amount: number) => {
       lastQuestsRefreshDate,
       playerGifts,
       playerVisitLogs,
+      treasureHuntState,
     };
   }, [
     coins,
@@ -2651,10 +2834,7 @@ const addXp = useCallback((amount: number) => {
     lastQuestsRefreshDate,
     playerGifts,
     playerVisitLogs,
-	subbotnikPoints,
-    isSubbotnikPremium,
-    claimedFreePass,
-    claimedPremiumPass,
+    treasureHuntState,
   ]);
 
   // Reset Game
@@ -2678,9 +2858,7 @@ const addXp = useCallback((amount: number) => {
 
   return {
     coins,
-	setCoins,
     gems,
-	setGems,
     level,
     xp,
     xpToNext: LEVEL_REQUIREMENTS[level] || level * 1000,
@@ -2710,7 +2888,6 @@ const addXp = useCallback((amount: number) => {
     trees,
     orders,
     inventory,
-	setInventory,
     barnCapacity,
     barnUsed,
     achievements,
@@ -2753,9 +2930,7 @@ const addXp = useCallback((amount: number) => {
     addFishingReward,
     changeWeather,
     purchasedDecorations,
-	setPurchasedDecorations,
     placedDecorations,
-	setPlacedDecorations,
     buyDecoration,
     togglePlaceDecoration,
     interactWithPlacedDecoration,
@@ -2764,6 +2939,7 @@ const addXp = useCallback((amount: number) => {
     contributeToQuest,
     completeNpcQuest,
     refreshNpcQuestsDaily,
+    generateNewQuest,
     lastQuestsRefreshDate,
     applyCloudSave,
     getCloudSavePayload,
@@ -2782,7 +2958,14 @@ const addXp = useCallback((amount: number) => {
     startHorseRide,
     speedUpHorseRide,
     collectHorseRideReward,
-	subbotnikPoints,
+    // State Setters needed for rewards and passes
+    setGems,
+    setCoins,
+    setInventory,
+    setPurchasedDecorations,
+    setPlacedDecorations,
+    // Subbotnik Seasonal Pass
+    subbotnikPoints,
     setSubbotnikPoints,
     isSubbotnikPremium,
     setIsSubbotnikPremium,
@@ -2790,5 +2973,11 @@ const addXp = useCallback((amount: number) => {
     setClaimedFreePass,
     claimedPremiumPass,
     setClaimedPremiumPass,
+    // Treasure Hunt Activity
+    treasureHuntState,
+    discoverTreasureChest,
+    openTreasureChest,
+    useCompassScan,
+    refreshTreasureHuntDaily,
   };
 }

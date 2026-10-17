@@ -46,7 +46,6 @@ export const PlayerInteractionsHubModal: React.FC<PlayerInteractionsHubModalProp
   const [giftNote, setGiftNote] = useState<string>('Удачи в сборе богатого урожая! 🌾');
   const [isSending, setIsSending] = useState(false);
 
-  // Sync initial tab and recipient when opened
   React.useEffect(() => {
     if (isOpen) {
       if (initialTab) setActiveTab(initialTab);
@@ -401,7 +400,7 @@ export const PlayerInteractionsHubModal: React.FC<PlayerInteractionsHubModalProp
               </div>
             </div>
 
-            {/* Real Player Notice / Auth check */}
+            {/* Real Player Notice */}
             {selectedRecipient?.isRealPlayer && (
               <div className="p-2.5 rounded-xl bg-gradient-to-r from-sky-950/80 to-stone-950 border border-sky-500/50 flex items-center justify-between gap-2 shadow-sm text-xs">
                 <div className="flex items-center gap-2 min-w-0">

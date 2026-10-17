@@ -27,6 +27,7 @@ import { FarmMapModal } from './components/FarmMapModal';
 import { RealFriendsModal } from './components/RealFriendsModal';
 import { RecipeBookModal } from './components/RecipeBookModal';
 import { SubbotnikPassModal } from './components/SubbotnikPassModal';
+import { TreasureHuntModal } from './components/TreasureHuntModal';
 import {
   FirestoreUserProfile,
   syncUserProfile,
@@ -46,6 +47,7 @@ import { useAuth } from './context/AuthContext';
 import { CROPS } from './utils/constants';
 import { DECORATIONS_CATALOG, getAestheticRank } from './utils/decorationsData';
 import { SEASONS_CONFIG } from './utils/seasonalData';
+import { sound } from './utils/audio';
 
 export default function App() {
   const {
@@ -129,6 +131,7 @@ export default function App() {
     contributeToQuest,
     completeNpcQuest,
     refreshNpcQuestsDaily,
+    generateNewQuest,
     applyCloudSave,
     getCloudSavePayload,
     resetGame,
@@ -145,13 +148,13 @@ export default function App() {
     startHorseRide,
     speedUpHorseRide,
     collectHorseRideReward,
-	// ---> ДОБАВЬТЕ ЭТИ 5 СТРОК (чтобы выдавать награды и покупать пропуск): <---
+    // Setters for rewards and pass
     setGems,
     setCoins,
     setInventory,
     setPurchasedDecorations,
     setPlacedDecorations,
-	// ---> ДОБАВЬТЕ ЭТИ 8 СТРОК СЮДА: <---
+    // Subbotnik Pass
     subbotnikPoints,
     setSubbotnikPoints,
     isSubbotnikPremium,
@@ -160,6 +163,12 @@ export default function App() {
     setClaimedFreePass,
     claimedPremiumPass,
     setClaimedPremiumPass,
+    // Treasure Hunt Activity
+    treasureHuntState,
+    discoverTreasureChest,
+    openTreasureChest,
+    useCompassScan,
+    refreshTreasureHuntDaily,
   } = useGameState();
 
   const { user, isSyncing, saveToCloud, loadFromCloud } = useAuth();
@@ -174,6 +183,7 @@ export default function App() {
   const [isJournalOpen, setIsJournalOpen] = useState<boolean>(false);
   const [isQuestsOpen, setIsQuestsOpen] = useState<boolean>(false);
   const [isSubbotnikOpen, setIsSubbotnikOpen] = useState<boolean>(false);
+  const [isTreasureHuntOpen, setIsTreasureHuntOpen] = useState<boolean>(false);
   const [isInteractionsHubOpen, setIsInteractionsHubOpen] = useState<boolean>(false);
   const [interactionHubInitialRecipient, setInteractionHubInitialRecipient] = useState<string>('');
   const [interactionHubInitialTab, setInteractionHubInitialTab] = useState<'inbox' | 'send' | 'visitors'>('inbox');
@@ -309,15 +319,12 @@ export default function App() {
       loadFromCloud().then((cloudData) => {
         if (cancelled) return;
         if (cloudData) {
-          // If cloud progress has higher level or coins, or local is virgin state
           if (cloudData.level > level || cloudData.coins > coins || (level === 1 && coins === 120)) {
             applyCloudSave(cloudData);
           } else {
-            // Push local to cloud
             saveToCloud(getCloudSavePayload());
           }
         } else {
-          // No cloud save exists yet for this user: save initial farm to cloud
           saveToCloud(getCloudSavePayload());
         }
       });
@@ -421,7 +428,6 @@ export default function App() {
     const realPlayerFarms = communityPlayers.map((player) =>
       convertPlayerToNeighborFarm(player, friendsUids.includes(player.id))
     );
-    // Put real player friends first, then other real players, then local NPC farms
     const friends = realPlayerFarms.filter((f) => f.isFriend);
     const nonFriends = realPlayerFarms.filter((f) => !f.isFriend);
     return [...friends, ...nonFriends, ...neighbors];
@@ -589,8 +595,10 @@ export default function App() {
         onOpenRecipeBook={() => setIsRecipeBookOpen(true)}
         onOpenRealFriends={() => setIsRealFriendsOpen(true)}
         onOpenStables={() => setActiveTab('stables')}
+        onOpenTreasureHunt={() => setIsTreasureHuntOpen(true)}
+        treasureHuntCount={treasureHuntState.activeChests.filter((c) => c.opened).length}
+        isTreasureHuntAvailable={treasureHuntState.activeChests.some((c) => !c.opened)}
       />
-
 
       {/* Main View Area */}
       <main className="flex-1 relative flex flex-col overflow-hidden">
@@ -637,9 +645,7 @@ export default function App() {
             onInteractDecoration={interactWithSeasonalDecoration}
             onInteractPlacedDecoration={interactWithPlacedDecoration}
             onOpenSeasonalModal={() => setIsSeasonalModalOpen(true)}
-			// --- ДОБАВИТЬ ЭТУ СТРОЧКУ ---
-            onOpenSubbotnikModal={() => setIsSubbotnikOpen(true)} 
-            // ---------------------------
+            onOpenSubbotnikModal={() => setIsSubbotnikOpen(true)}
             onOpenDecorShop={() => setActiveTab('decor')}
             onOpenJournal={() => setIsJournalOpen(true)}
             onOpenQuests={handleOpenQuests}
@@ -914,6 +920,7 @@ export default function App() {
           setIsMapOpen(false);
         }}
         onOpenRecipeBook={() => setIsRecipeBookOpen(true)}
+        onOpenTreasureHunt={() => setIsTreasureHuntOpen(true)}
         level={level}
         unlockedPlotsCount={plots.filter((p) => p.unlocked).length}
         totalPlotsCount={plots.length}
@@ -968,7 +975,9 @@ export default function App() {
           handleOpenSendGift('player_' + player.id);
         }}
       />
-	  {isSubbotnikOpen && (
+
+      {/* Subbotnik Seasonal Pass Modal */}
+      {isSubbotnikOpen && (
         <SubbotnikPassModal
           isOpen={isSubbotnikOpen}
           onClose={() => setIsSubbotnikOpen(false)}
@@ -985,11 +994,11 @@ export default function App() {
               sound.playError();
             }
           }}
-          onClaimReward={(level, isPremium, reward) => {
+          onClaimReward={(tierLevel, isPremium, reward) => {
             if (isPremium) {
-              setClaimedPremiumPass((prev) => [...prev, level]);
+              setClaimedPremiumPass((prev) => [...prev, tierLevel]);
             } else {
-              setClaimedFreePass((prev) => [...prev, level]);
+              setClaimedFreePass((prev) => [...prev, tierLevel]);
             }
 
             if (reward.type === 'coins') setCoins((prev) => prev + reward.amount);
@@ -1000,9 +1009,28 @@ export default function App() {
                 [reward.name]: (prev[reward.name] || 0) + reward.amount,
               }));
             }
+            if (reward.type === 'decor') {
+              setPurchasedDecorations((prev) => (prev.includes(reward.name) ? prev : [...prev, reward.name]));
+              setPlacedDecorations((prev) => (prev.includes(reward.name) ? prev : [...prev, reward.name]));
+            }
           }}
         />
       )}
+
+      {/* Daily Treasure Hunt Activity Modal (Поиск сокровищ) */}
+      <TreasureHuntModal
+        isOpen={isTreasureHuntOpen}
+        onClose={() => setIsTreasureHuntOpen(false)}
+        treasureHuntState={treasureHuntState}
+        onDiscoverChest={discoverTreasureChest}
+        onOpenChest={openTreasureChest}
+        onUseCompassScan={useCompassScan}
+        onRefreshDaily={() => refreshTreasureHuntDaily(true)}
+        onOpenJournal={() => {
+          setIsTreasureHuntOpen(false);
+          setIsJournalOpen(true);
+        }}
+      />
     </AndroidFrame>
   );
 }

@@ -10,7 +10,7 @@ export interface PassReward {
   premium: { type: 'coins' | 'gems' | 'item' | 'decor'; amount: number; name: string; emoji: string };
 }
 
-// Шаблоны наград (можно вынести в отдельный файл)
+// Шаблоны наград
 const SUBBOTNIK_REWARDS: PassReward[] = [
   { level: 1, pointsRequired: 50, free: { type: 'coins', amount: 300, name: 'Монеты', emoji: '🪙' }, premium: { type: 'item', amount: 5, name: 'Эко-удобрение', emoji: '✨' } },
   { level: 2, pointsRequired: 150, free: { type: 'item', amount: 10, name: 'Семена тыквы', emoji: '🎃' }, premium: { type: 'gems', amount: 15, name: 'Кристаллы', emoji: '💎' } },
@@ -145,7 +145,7 @@ export const SubbotnikPassModal: React.FC<SubbotnikPassModalProps> = ({
                 }`}
                 onClick={() => {
                   if (isUnlocked && !freeClaimed) {
-                    sound.playTap(); // ИСПРАВЛЕНО ЗДЕСЬ
+                    sound.playTap();
                     vibrateLight();
                     onClaimReward(tier.level, false, tier.free);
                   }
@@ -169,7 +169,7 @@ export const SubbotnikPassModal: React.FC<SubbotnikPassModalProps> = ({
                 }`}
                 onClick={() => {
                   if (isPremiumUnlocked && isUnlocked && !premiumClaimed) {
-                    sound.playTap(); // ИСПРАВЛЕНО ЗДЕСЬ
+                    sound.playTap();
                     vibrateLight();
                     onClaimReward(tier.level, true, tier.premium);
                   }

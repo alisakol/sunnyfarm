@@ -182,7 +182,6 @@ export const NpcVisitorsRoad: React.FC<NpcVisitorsRoadProps> = ({
                   <p className="line-clamp-2 italic font-game text-[9.5px]">
                     {status.thought}
                   </p>
-                  {/* Little thought bubble pointer dots */}
                   <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 flex flex-col items-center">
                     <span className="w-1.5 h-1.5 rounded-full bg-stone-800 border border-amber-600/50 block" />
                   </div>
@@ -191,7 +190,6 @@ export const NpcVisitorsRoad: React.FC<NpcVisitorsRoadProps> = ({
 
               {/* Character Avatar with movement animation */}
               <div className="relative my-1.5 flex items-center justify-center">
-                {/* Cobblestone path patch under character feet */}
                 <div className="absolute -bottom-1 w-10 h-3 bg-stone-800/80 rounded-[50%] blur-xs -z-0" />
 
                 <div
@@ -200,7 +198,6 @@ export const NpcVisitorsRoad: React.FC<NpcVisitorsRoadProps> = ({
                   {quest.npcAvatar}
                 </div>
 
-                {/* Exclamation / Attention ping */}
                 {status.isClaimable ? (
                   <span className="absolute -top-1.5 -right-2 bg-amber-400 text-stone-950 text-[10px] font-black px-1.5 py-0.2 rounded-full border border-white shadow-md animate-bounce">
                     🎁 ДАР

@@ -22,6 +22,7 @@ interface FarmMapModalProps {
   currentSeasonName: string;
   currentSeasonEmoji: string;
   onOpenRecipeBook?: () => void;
+  onOpenTreasureHunt?: () => void;
 }
 
 export const FarmMapModal: React.FC<FarmMapModalProps> = ({
@@ -43,6 +44,7 @@ export const FarmMapModal: React.FC<FarmMapModalProps> = ({
   currentSeasonName,
   currentSeasonEmoji,
   onOpenRecipeBook,
+  onOpenTreasureHunt,
 }) => {
   // Состояние для отслеживания открытой зоны (по умолчанию открыты 'fields')
   const [expandedZone, setExpandedZone] = useState<TabType | null>('fields');
@@ -233,7 +235,43 @@ export const FarmMapModal: React.FC<FarmMapModalProps> = ({
           </div>
         </div>
 
-        {/* Interactive Farm Zones Accordion (Single Column layout for accordion) */}
+        {/* Daily Treasure Hunt Expedition Banner */}
+        {onOpenTreasureHunt && (
+          <button
+            onClick={() => {
+              sound.playTap();
+              onOpenTreasureHunt();
+              onClose();
+            }}
+            className="mb-2 p-2.5 rounded-2xl border-2 border-amber-500/80 bg-gradient-to-r from-amber-950/90 via-[#42220d] to-amber-950/90 hover:from-amber-900 hover:to-amber-950 text-left transition-all active:scale-[0.99] cursor-pointer shadow-lg flex items-center justify-between gap-3 group shrink-0"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-400 p-0.5 shadow-md flex items-center justify-center text-xl shrink-0 group-hover:scale-110 transition-transform">
+                🧭
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-xs sm:text-sm font-bold text-amber-200 group-hover:text-amber-100 font-game">
+                    Экспедиция: Поиск Сокровищ Долины
+                  </h3>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/30 text-amber-300 border border-amber-400/50">
+                    5 сундуков
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-300/80">
+                  Старинная карта, компас-детектор и тайники на ферме и у соседей
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1 text-amber-300 text-xs font-bold group-hover:translate-x-1 transition-transform shrink-0">
+              <span>Искать</span>
+              <ChevronRight className="w-4 h-4" />
+            </div>
+          </button>
+        )}
+
+        {/* Interactive Farm Zones Accordion */}
         <div className="flex-1 overflow-y-auto no-scrollbar flex flex-col gap-2 pr-1 py-1">
           {farmZones.map((zone) => {
             const isExpanded = expandedZone === zone.id;
@@ -242,7 +280,7 @@ export const FarmMapModal: React.FC<FarmMapModalProps> = ({
               <div
                 key={zone.id}
                 className={`rounded-2xl border bg-gradient-to-br transition-all duration-300 shadow-md overflow-hidden ${
-                  isExpanded ? `${zone.gradient}${zone.border}` : 'bg-stone-900 border-stone-800/80'
+                  isExpanded ? `${zone.gradient} ${zone.border}` : 'bg-stone-900 border-stone-800/80'
                 }`}
               >
                 {/* Аккордеон: Заголовок (Кликабельный) */}
@@ -259,9 +297,9 @@ export const FarmMapModal: React.FC<FarmMapModalProps> = ({
                         {zone.name}
                       </h3>
                       {!isExpanded && (
-                         <span className="text-[10px] text-stone-500 block leading-tight font-mono mt-0.5">
-                           📍 {zone.coords}
-                         </span>
+                        <span className="text-[10px] text-stone-500 block leading-tight font-mono mt-0.5">
+                          📍 {zone.coords}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -288,11 +326,10 @@ export const FarmMapModal: React.FC<FarmMapModalProps> = ({
                         <Sparkles className="w-3 h-3 text-amber-400" />
                         <span>{zone.status}</span>
                       </span>
-                      
-                      {/* Кнопка "Перейти" теперь внутри раскрытого контента */}
+
                       <button
                         onClick={(e) => {
-                          e.stopPropagation(); // Предотвращает закрытие аккордеона при клике на Перейти
+                          e.stopPropagation();
                           handleSelectZone(zone.id);
                         }}
                         className="bg-amber-600 hover:bg-amber-500 text-stone-950 font-bold px-3 py-1.5 rounded-xl transition-all shadow-sm active:scale-95 flex items-center gap-1 cursor-pointer"

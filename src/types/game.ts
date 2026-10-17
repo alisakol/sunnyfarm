@@ -339,7 +339,7 @@ export interface AestheticRankInfo {
   bonusText: string;
 }
 
-export type JournalEntryType = 'level_up' | 'rare_purchase' | 'quest_completed' | 'milestone';
+export type JournalEntryType = 'level_up' | 'rare_purchase' | 'quest_completed' | 'milestone' | 'artifact_found';
 
 export interface FarmerJournalEntry {
   id: string;
@@ -357,6 +357,8 @@ export interface FarmerJournalEntry {
   questId?: string;
   npcName?: string;
   rewardsSummary?: string;
+  artifactId?: string;
+  artifactName?: string;
 }
 
 export type QuestDifficulty = 'challenging' | 'master' | 'epic';
@@ -499,6 +501,54 @@ export interface ActiveHorseRide {
   durationMs: number;
   completed: boolean;
   collected?: boolean;
+}
+
+// ----------------------------------------------------------------------------
+// Treasure Hunt Activity Types
+// ----------------------------------------------------------------------------
+
+export type ArtifactRarity = 'rare' | 'epic' | 'legendary';
+
+export interface FarmArtifact {
+  id: string;
+  name: string;
+  emoji: string;
+  rarity: ArtifactRarity;
+  description: string;
+  lore: string;
+  perk: string;
+  discoveredAt?: string;
+}
+
+export type ChestTier = 'wooden' | 'iron' | 'bronze' | 'silver' | 'gold';
+
+export interface TreasureChest {
+  id: string;
+  step: number; // 1 to 5
+  tier: ChestTier;
+  name: string;
+  locationName: string;
+  sector: 'my_farm' | 'neighbor_farm';
+  x: number; // 5 to 95% on map canvas
+  y: number; // 10 to 90% on map canvas
+  discovered: boolean;
+  opened: boolean;
+  rewards: {
+    gems: number;
+    coins: number;
+    xp: number;
+    artifact?: FarmArtifact;
+    bonusItem?: { id: string; name: string; emoji: string; count: number };
+  };
+}
+
+export interface TreasureHuntState {
+  lastHuntDate: string; // YYYY-MM-DD
+  currentStep: number; // 1 to 5 (which chest player is currently tracking)
+  totalChestsFound: number;
+  unlockedArtifactIds: string[];
+  activeChests: TreasureChest[];
+  compassScansUsedToday: number;
 }
 
 

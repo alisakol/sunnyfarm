@@ -531,6 +531,101 @@ class SoundEngine {
     });
   }
 
+  // Celebratory reward chime
+  public playReward() {
+    if (!this.soundEnabled) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const notes = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
+    notes.forEach((freq, idx) => {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+      gain.gain.setValueAtTime(0.18, now + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.4);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.45);
+    });
+  }
+
+  // Radar / Compass detector ping: pitch & tone changes based on proximity
+  public playSonarPing(intensity: 'freezing' | 'cold' | 'warm' | 'hot' | 'found' = 'cold') {
+    if (!this.soundEnabled) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    const freqMap = {
+      freezing: 280,
+      cold: 440,
+      warm: 620,
+      hot: 880,
+      found: 1174.66,
+    };
+    const freq = freqMap[intensity] || 440;
+
+    osc.type = intensity === 'found' ? 'triangle' : 'sine';
+    osc.frequency.setValueAtTime(freq, now);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.25, now + 0.08);
+
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + (intensity === 'found' ? 0.3 : 0.12));
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.35);
+  }
+
+  // Treasure chest opening sound
+  public playChestOpen() {
+    if (!this.soundEnabled) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+    // Latch click
+    const clickOsc = this.ctx.createOscillator();
+    const clickGain = this.ctx.createGain();
+    clickOsc.type = 'square';
+    clickOsc.frequency.setValueAtTime(180, now);
+    clickGain.gain.setValueAtTime(0.2, now);
+    clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+    clickOsc.connect(clickGain);
+    clickGain.connect(this.ctx.destination);
+    clickOsc.start(now);
+    clickOsc.stop(now + 0.06);
+
+    // Golden shimmer chords
+    const chord = [392.0, 493.88, 587.33, 783.99, 987.77];
+    chord.forEach((freq, idx) => {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + 0.05 + idx * 0.06);
+
+      gain.gain.setValueAtTime(0.18, now + 0.05 + idx * 0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05 + idx * 0.06 + 0.5);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now + 0.05 + idx * 0.06);
+      osc.stop(now + 0.05 + idx * 0.06 + 0.55);
+    });
+  }
+
   // Gentle background acoustic ambiance loop
   private startMusic() {
     this.stopMusic();

@@ -117,7 +117,7 @@ export const AndroidFrame: React.FC<AndroidFrameProps> = ({
             </button>
           </div>
 
-          {/* Screen Flip Button (Поворот / Переворот экрана) */}
+          {/* Screen Flip Button */}
           <button
             onClick={toggleOrientation}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl transition-all cursor-pointer font-bold text-[11px] border shadow-sm ${
@@ -130,11 +130,10 @@ export const AndroidFrame: React.FC<AndroidFrameProps> = ({
             <RotateCw className="w-3.5 h-3.5 animate-spin-once" />
             <span>Переворот ({orientation === 'portrait' ? '90°' : 'Вертикаль'})</span>
           </button>
-		  
         </div>
       </div>
 
-      {/* Main Container: Bezel according to selected Device & Orientation */}
+      {/* Main Container */}
       <div
         className={`transition-all duration-300 relative flex flex-col bg-emerald-950 overflow-hidden shadow-2xl ${getContainerClasses()}`}
       >
@@ -149,16 +148,15 @@ export const AndroidFrame: React.FC<AndroidFrameProps> = ({
             )}
           </div>
 
-          {/* Android Punch Hole Camera (on Phone/Tablet mode) */}
+          {/* Android Punch Hole Camera */}
           {deviceMode !== 'fullscreen' && (
             <div className="w-3.5 h-3.5 rounded-full bg-black border border-stone-800 shadow-inner flex items-center justify-center">
               <div className="w-1.5 h-1.5 rounded-full bg-stone-900"></div>
             </div>
           )}
 
-          {/* Status indicators (Sound controls, Screen Flip Quick Toggle, WiFi, Battery) */}
+          {/* Status indicators */}
           <div className="flex items-center gap-2 pr-1">
-            {/* Quick Screen Flip icon in status bar for mobile / tablet touch */}
             <button
               onClick={toggleOrientation}
               className={`p-1 rounded transition-colors cursor-pointer ${

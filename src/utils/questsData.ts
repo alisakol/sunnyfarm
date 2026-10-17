@@ -1339,67 +1339,475 @@ export const INITIAL_NPC_QUESTS: NpcQuest[] = [
 ];
 
 /**
- * Creates a fresh daily rotation of NPC quests.
- * Story quests and Grand Seasonal quests preserve their completed or in-progress state across daily resets!
+ * Pool of unique villagers for dynamically generated quests
  */
-export function generateDailyQuestsRefresh(existingQuests: NpcQuest[] = []): NpcQuest[] {
-  // 1. Оставляем сюжетные и сезонные квесты неизменными, сохраняя их прогресс
-  const persistentQuests = existingQuests.filter(
-    (q) => q.category === 'story' || q.category === 'seasonal'
-  );
+export interface DynamicNpcVillager {
+  name: string;
+  avatar: string;
+  role: string;
+  titles: string[];
+  stories: string[];
+  dialogues: string[];
+  preferredCategories: ('crops' | 'animals' | 'orchard' | 'bakery' | 'dairy' | 'juice' | 'sweets' | 'crafts' | 'stables')[];
+}
 
-  // 2. Пул случайных персонажей и вариантов ресурсов для генерации новых ежедневных поручений
-  const npcs = [
-    { name: 'Староста Савелий', role: 'Глава Совета', avatar: '👴' },
-    { name: 'Травница Марфа', role: 'Знахарка', avatar: '👵' },
-    { name: 'Шеф-Повар Огюст', role: 'Мэтр Кулинарии', avatar: '👨‍🍳' },
-    { name: 'Пасечник Прохор', role: 'Пасечник', avatar: '🧙‍♂️' },
-    { name: 'Ткачиха Елена', role: 'Мастерица', avatar: '👩‍🦰' },
-  ];
+export const DYNAMIC_VILLAGERS: DynamicNpcVillager[] = [
+  {
+    name: 'Староста Савелий',
+    avatar: '👴',
+    role: 'Глава Сельского Совета',
+    titles: [
+      'Золотой Фонд Сельской Ярмарки',
+      'Запас Общественного Амбара',
+      'Праздничный Каравай Долины',
+      'Служба на Благо Села',
+    ],
+    stories: [
+      'В волости объявлен сбор лучших припасов к приближающейся ярмарке. Сельский совет рассчитывает на надежность твоей усадьбы!',
+      'Общественный амбар должен быть полон отборным зерном и сытными продуктами. Помоги пополнить закрома долины!',
+      'К празднику урожая староста готовит торжественный стол для всех жителей и странников. Нужны свежие продукты!',
+    ],
+    dialogues: [
+      '«Здравствуй, рачительный хозяин! Без твоих запасов сельская ярмарка не состоится. Выручи земляков — награда будет царской!»',
+      '«На тебя вся надежда, дорогой фермер! Крепкое хозяйство — опора всей нашей цветущей долины!»',
+      '«Земля любит заботу, а совет ценит трудолюбие! Собери для нас лучший урожай, а я отблагодарю звонкой монетой!»',
+    ],
+    preferredCategories: ['crops', 'bakery', 'orchard'],
+  },
+  {
+    name: 'Шеф-кондитер Эмилия',
+    avatar: '👩‍🍳',
+    role: 'Мастер Королевских Десертов',
+    titles: [
+      'Изысканный Приём у Герцога',
+      'Шедевр Высокого Кондитерского Искусства',
+      'Сахарная Феерия на Ярмарке',
+      'Воздушное Суфле и Карамель',
+    ],
+    stories: [
+      'Знаменитая кондитерская Эмилии получила срочный заказ на королевский банкет! Требуются нежнейшие сладости и свежие ягоды.',
+      'Эмилия разрабатывает новый десерт для столичного фестиваля вкусов. Ей нужны безупречные фермерские ингредиенты!',
+      'В кондитерской выстроилась очередь сладкоежек со всей округи. Запасы ягод, пирогов и сливок на исходе!',
+    ],
+    dialogues: [
+      '«Mon cher! Мой мусс опадает без свежих ягод и сладких сливок! Выручи мою кондитерскую, и я посвящу тебе новый десерт!»',
+      '«Только с твоей усадьбы фрукты и ягоды обладают той самой божественной сладостью! Помоги мне сотворить кулинарное чудо!»',
+      '«Аромат выпечки уже манит гостей! Осталось лишь добавить твои отборные припасы — и праздник удастся на славу!»',
+    ],
+    preferredCategories: ['sweets', 'bakery', 'orchard', 'dairy'],
+  },
+  {
+    name: 'Профессор Лиственников',
+    avatar: '🔬',
+    role: 'Главный Агроном Долины',
+    titles: [
+      'Эксперимент по Селекции Культур',
+      'Каталог Флоры Солнечной Долины',
+      'Редкие Образцы для Академии Наук',
+      'Секреты Богатого Плодородия',
+    ],
+    stories: [
+      'Профессор пишет фундаментальный труд о плодородии местных земель. Ему требуются эталонные образцы урожая!',
+      'В агрономической лаборатории тестируют естественные методы повышения урожайности. Нужна партия образцовых овощей!',
+      'Академия наук запросила свежие образцы почвенных культур и садовых плодов для ежегодного каталога.',
+    ],
+    dialogues: [
+      '«Коллега! Структура ваших растений феноменальна! Позвольте изучить партию вашего урожая для науки — щедро компенсирую труды!»',
+      '«Наука и земледелие рука об руку творят чудеса! Доставьте свежие образцы в мою полевую лабораторию!»',
+      '«Каждый собранный колос и плод продвигает агрономию вперёд! Вы — гордость нашего научного сообщества!»',
+    ],
+    preferredCategories: ['crops', 'orchard'],
+  },
+  {
+    name: 'Ткачиха Марфа',
+    avatar: '🧶',
+    role: 'Мастерица Узорных Тканей',
+    titles: [
+      'Тёплое Зимовье для Лесничества',
+      'Шёлковые Ленты к Празднику Цветов',
+      'Уютные Свитера из Чистой Шерсти',
+      'Ярмарочные Узоры и Полотна',
+    ],
+    stories: [
+      'К холодам Марфа ткёт уютные пледы и тёплые вещи для лесничих и пастухов. Ей очень нужны шерсть и ткань!',
+      'Деревенская площадь должна быть украшена праздничными узорными полотнами и лентами к фестивалю.',
+      'Марфа готовит партию мягких свитеров и платков, славящихся на всю губернию своей нежностью и теплом.',
+    ],
+    dialogues: [
+      '«Здравствуй, соколик! Прялка моя не смолкает с рассвета, но шерсти и нитей на всех не хватает. Выручи бабушку Марфу!»',
+      '«Овечки твои дают самое шелковистое руно! С твоим материалом узоры ложатся сами собой. Помоги собрать припасы!»',
+      '«Тепло в избе — мир в душе! Свяжем для людей добрые вещи, а тебя я отблагодарю редким сувениром!»',
+    ],
+    preferredCategories: ['crafts', 'animals'],
+  },
+  {
+    name: 'Берейтор Родион',
+    avatar: '🐴',
+    role: 'Главный Тренер Конюшни',
+    titles: [
+      'Питательный Рацион для Скакунов',
+      'Подготовка к Большому Дерби',
+      'Угощение для Верных Лошадок',
+      'Сила и Грация на Беговой Дорожке',
+    ],
+    stories: [
+      'Лошади на конюшне готовятся к длительному походу и нуждаются в сочном, витаминном рационе из моркови и яблок!',
+      'Благородным орловским рысакам и арабским скакунам требуется сбалансированное питание перед турниром долины.',
+      'Родион обучает молодых жеребят и поощряет их хрустящими лакомствами с лучших фермерских угодий.',
+    ],
+    dialogues: [
+      '«Добрейшего дня, друг! Кони чуют свежую хрустящую морковь и яблоки с твоей фермы за версту! Порадуй наших красавцев!»',
+      '«Быстрый бег рождается из доброго ухода и сытного корма. Доставь нам отборные плоды, и я научу тебя секретам верховой езды!»',
+      '«Скакуны передают тебе тихое благодарное ржание! Твоя ферма — лучший друг нашей конюшни!»',
+    ],
+    preferredCategories: ['stables', 'crops', 'orchard'],
+  },
+  {
+    name: 'Сыровар Матильда',
+    avatar: '🧀',
+    role: 'Хранительница Альпийских Рецептов',
+    titles: [
+      'Золотая Головка Выдержанного Сыра',
+      'Дегустация в Сырном Погребке',
+      'Сливочный Бриз Долины',
+      'Нежная Фета и Трюфельный Бри',
+    ],
+    stories: [
+      'Матильда варит эксклюзивную партию выдержанного сыра в медном котле. Срочно нужно свежайшее утреннее молоко!',
+      'К приезду столичных знатоков сыровар готовит дегустационный сет из масла, сыров и фруктов.',
+      'В сыроварне созревают новые сорта. Без первоклассного молока и сливочного масла производство может остановиться!',
+    ],
+    dialogues: [
+      '«Grüezi! Твои коровки и козочки дают чистейшее молоко с альпийским ароматом! Помоги мне сотворить сырный шедевр!»',
+      '«Настоящий сыр не терпит спешки, но молоко нужно свежим, парным! Доставь припасы, и получишь кусочек золотой головки!»',
+      '«Масло взбито, котёл кипит! С твоей помощью наш сыр станет легендой всей долины!»',
+    ],
+    preferredCategories: ['dairy', 'animals'],
+  },
+  {
+    name: 'Соковар Игнат',
+    avatar: '🧃',
+    role: 'Мастер Свежих Нектаров',
+    titles: [
+      'Бочки Золотистого Сидра',
+      'Лимонадный Освежающий Бум',
+      'Нектары из Садовых Фруктов',
+      'Витаминный Заряд для Пахарей',
+    ],
+    stories: [
+      'Пресс соковара гудит без остановки! Деревенские мастера просят бодрящего сидра и свежих натуральных соков.',
+      'В жаркий сезон жажда одолевает всех тружеников полей. Игнат готовит большую партию ягодных и персиковых шейков.',
+      'Игнат поставляет освежающие напитки в деревенскую таверну и на ярмарочные ряды.',
+    ],
+    dialogues: [
+      '«Привет, труженик! Мой пресс жаждет сочных яблок, моркови и персиков! С твоими плодами сок получается кристальным!»',
+      '«Один глоток нашего фермерского сидра возвращает силы за секунду! Помоги наполнить дубовые бочки!»',
+      '«Лимонад бьёт ключом, пузырьки искрятся на солнце! Сдай фрукты и отведай лучшего нектара в долине!»',
+    ],
+    preferredCategories: ['juice', 'orchard', 'crops'],
+  },
+  {
+    name: 'Пасечник Демьян',
+    avatar: '🍯',
+    role: 'Хранитель Золотых Пасек',
+    titles: [
+      'Медовый Спас на Пасеке',
+      'Янтарные Соты и Цветы',
+      'Целебные Медовые Пряники',
+      'Золотая Капля Липового Мёда',
+    ],
+    stories: [
+      'Пчёлы Демьяна любят цветущие поля подсолнуха и лаванды. Пасечник готовит праздничный сбор янтарного мёда!',
+      'Демьян варит нежную медовую карамель и целебные настои от всех недугов. Нужны чистый мёд и сахарные плоды.',
+      'Пасека расширяется, и Демьян хочет отблагодарить фермера за соседство с цветущими угодьями.',
+    ],
+    dialogues: [
+      '«Мир твоему дому, пчеловод! Твои цветы дают самый густой и душистый нектар! Доставь припасы, а я угощу тягучим медком!»',
+      '«Трудолюбие пчелы и упорство фермера — великая сила! Сделаем вместе медовый праздник для всей деревни!»',
+      '«Пчёлки поют на летнем ветру! В награду за помощь пожалую тебе резной оберег для пасеки!»',
+    ],
+    preferredCategories: ['sweets', 'crops'],
+  },
+  {
+    name: 'Бабушка Анисья',
+    avatar: '👵',
+    role: 'Хранительница Домашнего Уюта',
+    titles: [
+      'Воскресное Семейное Чаепитие',
+      'Румяные Пироги из Русской Печи',
+      'Забота о Деревенских Ребятишках',
+      'Тёплый Дом и Сладкое Варенье',
+    ],
+    stories: [
+      'В воскресенье к Анисье съезжаются внучата со всей волости. В печи томятся пироги, но нужны молоко, яйца и ягоды!',
+      'Бабушка Анисья варит сладкое клубничное варенье и печёт рассыпчатое печенье для соседских чаепитий.',
+      'Старая печь натоплена ароматными дровами. Анисья просит принести свежую муку, масло и сладкие яблоки.',
+    ],
+    dialogues: [
+      '«Здравствуй, внучок мой золотой! Печь истопила, самовар начистила, а за молоком да мукой ноги не дойдут. Выручи старушку!»',
+      '«Запах пирогов по всей улице стоит! Принеси ягод да маслица, а я тебе румяный гостинец на дорожку припасу!»',
+      '«Сердце радуется, когда за столом смех звучит! Помоги накрыть стол, а я за тебя свечу в храме поставлю!»',
+    ],
+    preferredCategories: ['bakery', 'animals', 'orchard', 'sweets'],
+  },
+  {
+    name: 'Художница Аглая',
+    avatar: '🎨',
+    role: 'Декоратор Цветочной Долины',
+    titles: [
+      'Палитра Осенних Красок Долины',
+      'Цветочные Гирлянды для Моста',
+      'Натюрморт с Пышным Урожаем',
+      'Гармония Сельской Эстетики',
+    ],
+    stories: [
+      'Аглая пишет грандиозную картину «Изобилие Солнечной Фермы». Ей нужны самые живописные плоды, цветы и ленты!',
+      'Художница оформляет въезд в деревню и мостик через реку яркими тыквами, подсолнухами и лавандой.',
+      'Для создания натуральных масляных красок Аглае требуются растительные масла, пигменты ягод и шёлк.',
+    ],
+    dialogues: [
+      '«Ах, какая игра света на твоих грядках! Мне жизненно необходимы твои яркие тыквы и цветы для завершения полотна!»',
+      '«Твоя ферма — чистая поэзия природы! Помоги мне с композицией, а я подарю тебе эксклюзивный арт-объект для сада!»',
+      '«Красота спасёт этот мир, а добрый урожай согреет сердце! Давай украсим усадьбу так, чтобы все ахнули!»',
+    ],
+    preferredCategories: ['crops', 'crafts'],
+  },
+];
 
-  const possibleItems = [
-    { itemId: 'wheat', name: 'пшеницу', count: 20 },
-    { itemId: 'carrot', name: 'морковь', count: 15 },
-    { itemId: 'corn', name: 'кукурузу', count: 18 },
-    { itemId: 'apple', name: 'яблоки', count: 12 },
-    { itemId: 'milk', name: 'молоко', count: 10 },
-  ];
+interface DynamicItemConfig {
+  id: string;
+  name: string;
+  emoji: string;
+  minLevel: number;
+  category: 'crops' | 'animals' | 'orchard' | 'bakery' | 'dairy' | 'juice' | 'sweets' | 'crafts' | 'stables';
+  baseCount: [number, number];
+  allowedItemIds?: string[];
+  unitCoins: number;
+}
 
-  // 3. Генерируем свежие случайные квесты вместо использования старых шаблонов
-  const newDailyQuests: NpcQuest[] = Array.from({ length: 4 }).map((_, index) => {
-    const npc = npcs[Math.floor(Math.random() * npcs.length)];
-    const item = possibleItems[Math.floor(Math.random() * possibleItems.length)];
-    const questId = `daily_gen_${Date.now()}_${index}`;
+export const DYNAMIC_ITEMS_POOL: DynamicItemConfig[] = [
+  // Crops
+  { id: 'wheat', name: 'Золотая пшеница', emoji: '🌾', minLevel: 1, category: 'crops', baseCount: [10, 20], unitCoins: 3 },
+  { id: 'carrot', name: 'Хрустящая морковь', emoji: '🥕', minLevel: 1, category: 'crops', baseCount: [8, 16], unitCoins: 5 },
+  { id: 'corn', name: 'Сладкая кукуруза', emoji: '🌽', minLevel: 2, category: 'crops', baseCount: [8, 15], unitCoins: 8 },
+  { id: 'strawberry', name: 'Свежая клубника', emoji: '🍓', minLevel: 3, category: 'crops', baseCount: [6, 14], unitCoins: 12 },
+  { id: 'tomato', name: 'Спелые томаты', emoji: '🍅', minLevel: 4, category: 'crops', baseCount: [6, 12], unitCoins: 16 },
+  { id: 'potato', name: 'Отборный картофель', emoji: '🥔', minLevel: 4, category: 'crops', baseCount: [6, 14], unitCoins: 14 },
+  { id: 'sunflower', name: 'Яркий подсолнух', emoji: '🌻', minLevel: 5, category: 'crops', baseCount: [5, 10], unitCoins: 22 },
+  { id: 'pumpkin', name: 'Праздничная тыква', emoji: '🎃', minLevel: 5, category: 'crops', baseCount: [4, 8], unitCoins: 30 },
+  { id: 'lavender', name: 'Горная лаванда', emoji: '🪻', minLevel: 6, category: 'crops', baseCount: [5, 10], unitCoins: 36 },
+  { id: 'blueberry', name: 'Лесная черника', emoji: '🫐', minLevel: 7, category: 'crops', baseCount: [5, 10], unitCoins: 45 },
+  { id: 'watermelon', name: 'Сахарный арбуз', emoji: '🍉', minLevel: 10, category: 'crops', baseCount: [3, 6], unitCoins: 75 },
+  { id: 'grape', name: 'Мускатный виноград', emoji: '🍇', minLevel: 11, category: 'crops', baseCount: [4, 8], unitCoins: 60 },
+  { id: 'eggplant', name: 'Глянцевый баклажан', emoji: '🍆', minLevel: 12, category: 'crops', baseCount: [4, 8], unitCoins: 70 },
+  { id: 'artichoke', name: 'Нежный артишок', emoji: '🥬', minLevel: 14, category: 'crops', baseCount: [3, 6], unitCoins: 95 },
+  { id: 'pineapple', name: 'Тропический ананас', emoji: '🍍', minLevel: 16, category: 'crops', baseCount: [2, 5], unitCoins: 120 },
+  { id: 'dragonfruit', name: 'Экзотический драгонфрут', emoji: '🐉', minLevel: 18, category: 'crops', baseCount: [2, 4], unitCoins: 180 },
+
+  // Animals
+  { id: 'egg', name: 'Свежие яйца', emoji: '🥚', minLevel: 1, category: 'animals', baseCount: [6, 12], unitCoins: 10 },
+  { id: 'milk', name: 'Фермерское молоко', emoji: '🥛', minLevel: 2, category: 'animals', baseCount: [4, 8], unitCoins: 18 },
+  { id: 'wool', name: 'Овечья шерсть', emoji: '🧶', minLevel: 4, category: 'animals', baseCount: [3, 6], unitCoins: 35 },
+  { id: 'honey', name: 'Цветочный мёд', emoji: '🍯', minLevel: 5, category: 'animals', baseCount: [3, 6], unitCoins: 45 },
+  { id: 'goat_milk', name: 'Козье молоко', emoji: '🐐', minLevel: 8, category: 'animals', baseCount: [2, 5], unitCoins: 60 },
+  { id: 'truffle', name: 'Чёрный трюфель', emoji: '🍄', minLevel: 15, category: 'animals', baseCount: [1, 3], unitCoins: 150 },
+
+  // Orchard
+  { id: 'apple', name: 'Наливные яблоки', emoji: '🍎', minLevel: 1, category: 'orchard', baseCount: [6, 12], unitCoins: 15 },
+  { id: 'cherry', name: 'Спелая вишня', emoji: '🍒', minLevel: 6, category: 'orchard', baseCount: [5, 10], unitCoins: 32 },
+  { id: 'orange', name: 'Сочные апельсины', emoji: '🍊', minLevel: 7, category: 'orchard', baseCount: [4, 8], unitCoins: 42 },
+  { id: 'peach', name: 'Бархатные персики', emoji: '🍑', minLevel: 9, category: 'orchard', baseCount: [3, 6], unitCoins: 58 },
+  { id: 'hazelnut', name: 'Лесной фундук', emoji: '🌰', minLevel: 12, category: 'orchard', baseCount: [3, 6], unitCoins: 80 },
+  { id: 'lemon', name: 'Свежие лимоны', emoji: '🍋', minLevel: 14, category: 'orchard', baseCount: [3, 5], unitCoins: 90 },
+  { id: 'starfruit', name: 'Звёздный карамболь', emoji: '⭐', minLevel: 18, category: 'orchard', baseCount: [2, 4], unitCoins: 140 },
+
+  // Bakery
+  { id: 'flour', name: 'Пшеничная мука', emoji: '🥡', minLevel: 1, category: 'bakery', baseCount: [4, 8], unitCoins: 12 },
+  { id: 'bread', name: 'Румяный хлеб', emoji: '🍞', minLevel: 1, category: 'bakery', baseCount: [3, 6], unitCoins: 25 },
+  { id: 'cornmeal', name: 'Кукурузная мука', emoji: '🌽', minLevel: 2, category: 'bakery', baseCount: [3, 6], unitCoins: 22 },
+  { id: 'strawberry_pie', name: 'Клубничный пирог', emoji: '🥧', minLevel: 3, category: 'bakery', baseCount: [2, 4], allowedItemIds: ['strawberry_pie', 'apple_pie', 'pumpkin_pie', 'pie'], unitCoins: 65 },
+  { id: 'cookies', name: 'Хрустящее печенье', emoji: '🍪', minLevel: 3, category: 'bakery', baseCount: [3, 6], unitCoins: 40 },
+  { id: 'apple_pie', name: 'Яблочный пирог', emoji: '🥧', minLevel: 6, category: 'bakery', baseCount: [2, 3], allowedItemIds: ['strawberry_pie', 'apple_pie', 'pumpkin_pie', 'pie'], unitCoins: 85 },
+  { id: 'berry_croissant', name: 'Ягодный круассан', emoji: '🥐', minLevel: 7, category: 'bakery', baseCount: [2, 4], unitCoins: 95 },
+  { id: 'pumpkin_pie', name: 'Пряный тыквенный пирог', emoji: '🥧', minLevel: 8, category: 'bakery', baseCount: [1, 3], allowedItemIds: ['strawberry_pie', 'apple_pie', 'pumpkin_pie', 'pie'], unitCoins: 110 },
+  { id: 'pizza_margherita', name: 'Пицца Маргарита', emoji: '🍕', minLevel: 12, category: 'bakery', baseCount: [1, 2], unitCoins: 160 },
+
+  // Dairy
+  { id: 'butter', name: 'Сливочное масло', emoji: '🧈', minLevel: 2, category: 'dairy', baseCount: [3, 6], unitCoins: 35 },
+  { id: 'cheese', name: 'Фермерский сыр', emoji: '🧀', minLevel: 4, category: 'dairy', baseCount: [2, 4], unitCoins: 55 },
+  { id: 'goat_feta', name: 'Козья фета', emoji: '🥗', minLevel: 8, category: 'dairy', baseCount: [1, 3], unitCoins: 90 },
+  { id: 'strawberry_yogurt', name: 'Клубничный йогурт', emoji: '🥛', minLevel: 10, category: 'dairy', baseCount: [2, 3], unitCoins: 115 },
+  { id: 'vanilla_icecream', name: 'Ванильное мороженое', emoji: '🍨', minLevel: 14, category: 'dairy', baseCount: [1, 2], unitCoins: 150 },
+  { id: 'truffle_brie', name: 'Сыр Бри с трюфелем', emoji: '🧀', minLevel: 16, category: 'dairy', baseCount: [1, 2], unitCoins: 280 },
+
+  // Loom / Crafts
+  { id: 'cloth', name: 'Льняная ткань', emoji: '🧵', minLevel: 3, category: 'crafts', baseCount: [2, 4], unitCoins: 45 },
+  { id: 'wool_yarn', name: 'Шерстяная пряжа', emoji: '🧶', minLevel: 5, category: 'crafts', baseCount: [2, 4], unitCoins: 65 },
+  { id: 'cozy_sweater', name: 'Уютный свитер', emoji: '🧶', minLevel: 7, category: 'crafts', baseCount: [1, 2], unitCoins: 140 },
+  { id: 'silk_ribbon', name: 'Шёлковая лента', emoji: '🎀', minLevel: 15, category: 'crafts', baseCount: [1, 2], unitCoins: 190 },
+  { id: 'winter_scarf', name: 'Зимний шерстяной шарф', emoji: '🧣', minLevel: 16, category: 'crafts', baseCount: [1, 2], unitCoins: 240 },
+
+  // Juice & Jam
+  { id: 'carrot_juice', name: 'Морковный нектар', emoji: '🥕', minLevel: 2, category: 'juice', baseCount: [3, 5], unitCoins: 30 },
+  { id: 'apple_juice', name: 'Яблочный сок', emoji: '🧃', minLevel: 3, category: 'juice', baseCount: [3, 5], unitCoins: 45 },
+  { id: 'strawberry_jam', name: 'Клубничное варенье', emoji: '🫙', minLevel: 4, category: 'sweets', baseCount: [2, 4], unitCoins: 55 },
+  { id: 'apple_marmalade', name: 'Яблочный мармелад', emoji: '🍯', minLevel: 6, category: 'sweets', baseCount: [2, 3], unitCoins: 75 },
+  { id: 'fresh_cider', name: 'Фермерский сидр', emoji: '🍺', minLevel: 7, category: 'juice', baseCount: [2, 3], unitCoins: 90 },
+  { id: 'peach_shake', name: 'Персиковый шейк', emoji: '🥤', minLevel: 9, category: 'juice', baseCount: [1, 3], unitCoins: 120 },
+  { id: 'grape_jelly', name: 'Виноградное желе', emoji: '🍇', minLevel: 11, category: 'sweets', baseCount: [1, 3], unitCoins: 135 },
+  { id: 'berry_lemonade', name: 'Ягодный лимонад', emoji: '🍹', minLevel: 14, category: 'juice', baseCount: [1, 2], unitCoins: 180 },
+
+  // Confectionery
+  { id: 'honey_caramel', name: 'Медовая карамель', emoji: '🍬', minLevel: 5, category: 'sweets', baseCount: [2, 4], unitCoins: 70 },
+  { id: 'dark_chocolate', name: 'Тёмный шоколад', emoji: '🍫', minLevel: 12, category: 'sweets', baseCount: [1, 3], unitCoins: 160 },
+  { id: 'hazelnut_truffle', name: 'Ореховый трюфель', emoji: '🌰', minLevel: 13, category: 'sweets', baseCount: [1, 2], unitCoins: 220 },
+  { id: 'grape_praline', name: 'Виноградное пралине', emoji: '🍬', minLevel: 13, category: 'sweets', baseCount: [1, 2], unitCoins: 240 },
+  { id: 'lavender_macarons', name: 'Лавандовые макаруны', emoji: '🧁', minLevel: 18, category: 'sweets', baseCount: [1, 2], unitCoins: 310 },
+  { id: 'dragon_fruit_cake', name: 'Торт с драгонфрутом', emoji: '🎂', minLevel: 20, category: 'sweets', baseCount: [1, 2], unitCoins: 450 },
+];
+
+/**
+ * Generates a completely new, balanced, dynamic NPC quest tailored to the player's level
+ */
+export function generateDynamicNpcQuest(
+  level: number = 1,
+  existingIds: string[] = [],
+  season?: string
+): NpcQuest {
+  // Pick random villager
+  const villager = DYNAMIC_VILLAGERS[Math.floor(Math.random() * DYNAMIC_VILLAGERS.length)];
+  const title = villager.titles[Math.floor(Math.random() * villager.titles.length)];
+  const story = villager.stories[Math.floor(Math.random() * villager.stories.length)];
+  const dialogue = villager.dialogues[Math.floor(Math.random() * villager.dialogues.length)];
+
+  // Filter items available at current player level
+  const availableItems = DYNAMIC_ITEMS_POOL.filter((item) => item.minLevel <= Math.max(1, level));
+
+  // Prefer items that match villager's preferred categories
+  const preferredItems = availableItems.filter((i) => villager.preferredCategories.includes(i.category));
+  const candidatePool = preferredItems.length >= 2 ? preferredItems : availableItems;
+
+  // Pick 2-3 unique items
+  const objectivesCount = level >= 4 ? (Math.random() > 0.4 ? 3 : 2) : 2;
+  const shuffled = [...candidatePool].sort(() => 0.5 - Math.random());
+  const selectedItems = shuffled.slice(0, objectivesCount);
+
+  let totalEstimatedCoins = 0;
+  const objectives = selectedItems.map((item, idx) => {
+    const [minC, maxC] = item.baseCount;
+    // Scale count slightly with level
+    const count = Math.max(1, Math.floor(minC + Math.random() * (maxC - minC + 1)));
+    totalEstimatedCoins += count * item.unitCoins;
 
     return {
-      id: questId,
-      category: 'daily_npc',
-      npcName: npc.name,
-      npcAvatar: npc.avatar,
-      npcRole: npc.role,
-      title: `Срочный заказ: ${item.name}`,
-      story: `Жителям долины срочно потребовалась крупная партия (${item.name}) для общины.`,
-      dialogue: `«Доброго здоровья! Выручай свежим урожаем, в долгу не останемся!»`,
-      difficulty: 'challenging',
-      objectives: [
-        {
-          id: `obj_${questId}`,
-          description: `Собрать и сдать ${item.name}`,
-          targetCount: item.count,
-          currentCount: 0,
-          itemId: item.itemId,
-          type: 'deliver_item',
-        },
-      ],
-      rewards: {
-        coins: item.count * 30,
-        gems: 5,
-        xp: item.count * 15,
-      },
-      completed: false,
+      id: `obj_dyn_${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
+      description: `Собрать и сдать: ${item.name}`,
+      targetCount: count,
+      currentCount: 0,
+      itemId: item.id,
+      allowedItemIds: item.allowedItemIds,
+      type: 'deliver_item' as const,
     };
   });
 
-  // Возвращаем постоянные сюжетные/сезонные квесты вместе с новыми сгенерированными ежедневными заданиями
-  return [...persistentQuests, ...newDailyQuests];
+  // Calculate difficulty
+  const difficulty: 'challenging' | 'master' | 'epic' =
+    level >= 15 ? (Math.random() > 0.5 ? 'epic' : 'master') : level >= 6 ? (Math.random() > 0.4 ? 'master' : 'challenging') : 'challenging';
+
+  // Calculate fair rewards
+  const bonusMultiplier = difficulty === 'epic' ? 2.2 : difficulty === 'master' ? 1.8 : 1.5;
+  const rewardCoins = Math.round(Math.max(350, totalEstimatedCoins * bonusMultiplier));
+  const rewardGems = difficulty === 'epic' ? 8 + Math.floor(Math.random() * 5) : difficulty === 'master' ? 5 + Math.floor(Math.random() * 4) : 3 + Math.floor(Math.random() * 3);
+  const rewardXp = Math.round(200 + level * 25 + Math.random() * 150);
+
+  const questId = `quest_dyn_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+  // Optional decorative reward from villager
+  const decorNames = [
+    { name: `Оберег от ${villager.name}`, emoji: '🪵', perk: `Благословение деревни: +5% к репутации фермы`, pts: 35 },
+    { name: `Резная Табличка «${title}»`, emoji: '📜', perk: `Памятная табличка трудолюбия: +10 XP за сбор урожая`, pts: 40 },
+    { name: `Глиняный Кувшин от ${villager.name}`, emoji: '🏺', perk: `Уютная усадьба: +35 к эстетике двора`, pts: 45 },
+    { name: `Цветочная Корзина Дружбы`, emoji: '🧺', perk: `Аромат свежих цветов: +5% к эстетике сада`, pts: 50 },
+  ];
+  const chosenDecor = decorNames[Math.floor(Math.random() * decorNames.length)];
+
+  return {
+    id: questId,
+    npcName: villager.name,
+    npcAvatar: villager.avatar,
+    npcRole: villager.role,
+    title,
+    story,
+    dialogue,
+    difficulty,
+    category: 'daily_npc',
+    objectives,
+    rewards: {
+      coins: rewardCoins,
+      gems: rewardGems,
+      xp: rewardXp,
+      specialTitle: `Друг жителя: ${villager.name}`,
+      decorItem: {
+        id: `decor_dyn_${questId}`,
+        name: chosenDecor.name,
+        emoji: chosenDecor.emoji,
+        category: 'cozy',
+        rarity: difficulty === 'epic' ? 'epic' : 'rare',
+        costCoins: 0,
+        costGems: 0,
+        minLevel: 1,
+        aestheticPoints: chosenDecor.pts,
+        perk: chosenDecor.perk,
+        description: `Особый памятный подарок от ${villager.name} (${villager.role}) за безупречное исполнение поручения.`,
+      },
+    },
+    completed: false,
+  };
+}
+
+/**
+ * Creates a fresh daily rotation of NPC quests.
+ * Story quests and Grand Seasonal quests preserve their completed or in-progress state across daily resets!
+ * Generates fresh new dynamic quests tailored to the player's level!
+ */
+export function generateDailyQuestsRefresh(
+  existingQuests: NpcQuest[] = [],
+  level: number = 1
+): NpcQuest[] {
+  const existingMap = new Map<string, NpcQuest>();
+  existingQuests.forEach((q) => existingMap.set(q.id, q));
+
+  // 1. Preserve all story & seasonal quests with their actual state
+  const preservedStoryAndSeasonal = INITIAL_NPC_QUESTS
+    .filter((q) => q.category === 'story' || q.category === 'seasonal')
+    .map((template) => {
+      const existing = existingMap.get(template.id);
+      return existing || template;
+    });
+
+  // 2. Take existing fixed daily templates and reset them for rotation
+  const fixedDailyTemplates = DAILY_NPC_QUESTS.map((template) => ({
+    ...template,
+    category: 'daily_npc' as const,
+    completed: false,
+    completedAt: undefined,
+    objectives: template.objectives.map((obj) => ({
+      ...obj,
+      currentCount: 0,
+    })),
+  }));
+
+  // 3. Generate 3 fresh dynamic quests tailored to player's current level
+  const existingIds = [
+    ...preservedStoryAndSeasonal.map((q) => q.id),
+    ...fixedDailyTemplates.map((q) => q.id),
+  ];
+
+  const dynamicQuests: NpcQuest[] = [
+    generateDynamicNpcQuest(level, existingIds),
+    generateDynamicNpcQuest(level, existingIds),
+    generateDynamicNpcQuest(level, existingIds),
+  ];
+
+  return [...preservedStoryAndSeasonal, ...dynamicQuests, ...fixedDailyTemplates];
 }

@@ -166,6 +166,7 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
                             : 'bg-emerald-950/70 border-emerald-800/60'
                         }`}
                       >
+                        {/* Top: Pet button & Animal Avatar */}
                         <div className="flex items-center justify-between mb-1">
                           <button
                             onClick={() => onPetAnimal(animal.id)}
@@ -184,6 +185,7 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
                           </span>
                         </div>
 
+                        {/* Status Label */}
                         <div className="my-1 text-center">
                           {isHungry && (
                             <span className="text-[10px] text-amber-300/90 font-medium">
@@ -211,6 +213,7 @@ export const AnimalsView: React.FC<AnimalsViewProps> = ({
                           )}
                         </div>
 
+                        {/* Action Button: Feed or Collect */}
                         <div className="mt-1">
                           {isHungry && (
                             <button
