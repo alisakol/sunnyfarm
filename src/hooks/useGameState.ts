@@ -2497,13 +2497,12 @@ const addXp = useCallback((amount: number) => {
   useEffect(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     if (lastQuestsRefreshDate && lastQuestsRefreshDate !== todayStr) {
-      const refreshed = generateDailyQuestsRefresh(npcQuests);
-      setNpcQuests(refreshed);
+      setNpcQuests((prevQuests) => generateDailyQuestsRefresh(prevQuests));
       setLastQuestsRefreshDate(todayStr);
     } else if (!lastQuestsRefreshDate) {
       setLastQuestsRefreshDate(todayStr);
     }
-  }, [lastQuestsRefreshDate]);
+  }, [lastQuestsRefreshDate]); // Убрали npcQuests из массива зависимостей, используя функциональное обновление setNpcQuests
 
   // Apply Cloud Save from Firestore
   const applyCloudSave = useCallback((data: CloudSavePayload) => {

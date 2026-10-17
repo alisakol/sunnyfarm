@@ -1343,28 +1343,63 @@ export const INITIAL_NPC_QUESTS: NpcQuest[] = [
  * Story quests and Grand Seasonal quests preserve their completed or in-progress state across daily resets!
  */
 export function generateDailyQuestsRefresh(existingQuests: NpcQuest[] = []): NpcQuest[] {
-  const existingMap = new Map<string, NpcQuest>();
-  existingQuests.forEach((q) => existingMap.set(q.id, q));
+  // 1. Оставляем сюжетные и сезонные квесты неизменными, сохраняя их прогресс
+  const persistentQuests = existingQuests.filter(
+    (q) => q.category === 'story' || q.category === 'seasonal'
+  );
 
-  return INITIAL_NPC_QUESTS.map((template) => {
-    const existing = existingMap.get(template.id);
-    // Story quests and Grand Seasonal quests preserve their progress and completed state!
-    if (template.category === 'story' || template.category === 'seasonal') {
-      if (existing) {
-        return existing;
-      }
-      return template;
-    }
+  // 2. Пул случайных персонажей и вариантов ресурсов для генерации новых ежедневных поручений
+  const npcs = [
+    { name: 'Староста Савелий', role: 'Глава Совета', avatar: '👴' },
+    { name: 'Травница Марфа', role: 'Знахарка', avatar: '👵' },
+    { name: 'Шеф-Повар Огюст', role: 'Мэтр Кулинарии', avatar: '👨‍🍳' },
+    { name: 'Пасечник Прохор', role: 'Пасечник', avatar: '🧙‍♂️' },
+    { name: 'Ткачиха Елена', role: 'Мастерица', avatar: '👩‍🦰' },
+  ];
 
-    // Daily NPC quests reset progress on daily rotation
+  const possibleItems = [
+    { itemId: 'wheat', name: 'пшеницу', count: 20 },
+    { itemId: 'carrot', name: 'морковь', count: 15 },
+    { itemId: 'corn', name: 'кукурузу', count: 18 },
+    { itemId: 'apple', name: 'яблоки', count: 12 },
+    { itemId: 'milk', name: 'молоко', count: 10 },
+  ];
+
+  // 3. Генерируем свежие случайные квесты вместо использования старых шаблонов
+  const newDailyQuests: NpcQuest[] = Array.from({ length: 4 }).map((_, index) => {
+    const npc = npcs[Math.floor(Math.random() * npcs.length)];
+    const item = possibleItems[Math.floor(Math.random() * possibleItems.length)];
+    const questId = `daily_gen_${Date.now()}_${index}`;
+
     return {
-      ...template,
+      id: questId,
+      category: 'daily_npc',
+      npcName: npc.name,
+      npcAvatar: npc.avatar,
+      npcRole: npc.role,
+      title: `Срочный заказ: ${item.name}`,
+      story: `Жителям долины срочно потребовалась крупная партия (${item.name}) для общины.`,
+      dialogue: `«Доброго здоровья! Выручай свежим урожаем, в долгу не останемся!»`,
+      difficulty: 'challenging',
+      objectives: [
+        {
+          id: `obj_${questId}`,
+          description: `Собрать и сдать ${item.name}`,
+          targetCount: item.count,
+          currentCount: 0,
+          itemId: item.itemId,
+          type: 'deliver_item',
+        },
+      ],
+      rewards: {
+        coins: item.count * 30,
+        gems: 5,
+        xp: item.count * 15,
+      },
       completed: false,
-      completedAt: undefined,
-      objectives: template.objectives.map((obj) => ({
-        ...obj,
-        currentCount: 0,
-      })),
     };
   });
+
+  // Возвращаем постоянные сюжетные/сезонные квесты вместе с новыми сгенерированными ежедневными заданиями
+  return [...persistentQuests, ...newDailyQuests];
 }
